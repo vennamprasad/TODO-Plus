@@ -37,7 +37,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("233")
-        untilBuild.set("241.*")
+        untilBuild.set("253.*")  // Support up to 2025.3 and beyond
     }
 
     signPlugin {
