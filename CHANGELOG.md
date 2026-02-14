@@ -2,6 +2,12 @@
 
 All notable changes to the TODO++ plugin will be documented in this file.
 
+## [1.1.1] - 2026-02-15
+
+### Fixed
+- Extended compatibility range to support IntelliJ IDEA 2025.3 and newer versions
+- Updated `untilBuild` to 253.* for broader IDE version support
+
 ## [1.1.0] - 2026-02-15
 
 ### Added
