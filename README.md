@@ -125,7 +125,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔒 Privacy & Legal
+
+- **Privacy Policy**: [PRIVACY.md](PRIVACY.md) - We don't collect any data
+- **Copyright Notice**: [COPYRIGHT.md](COPYRIGHT.md) - Legal attributions
 
 ## 🙏 Acknowledgments
 
@@ -134,3 +139,6 @@ Built with the IntelliJ Platform SDK
 ---
 
 **Made with ❤️ for developers who love organized code**
+
+**Copyright © 2026 Vennam Prasad**
+
