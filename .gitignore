@@ -1,0 +1,39 @@
+# Gradle build files
+.gradle/
+build/
+!gradle-wrapper.jar
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IntelliJ Platform cache
+.intellijPlatform/
+
+# IntelliJ sandbox
+idea-sandbox/
+
+# macOS
+.DS_Store
+
+# Compiled files
+*.class
+*.jar
+!gradle-wrapper.jar
+
+# Test output
+test-results/
+test-output/
+
+# Local configuration
+local.properties
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
