@@ -3,10 +3,8 @@ package com.todoplus.actions
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
-import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import com.todoplus.services.TodoScannerService
-import com.todoplus.toolwindow.TodoToolWindowContent
 
 /**
  * Action to refresh/scan project for TODOs

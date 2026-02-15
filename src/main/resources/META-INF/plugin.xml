@@ -39,6 +39,9 @@
             anchor="bottom" 
             factoryClass="com.todoplus.toolwindow.TodoToolWindowFactory"
             icon="AllIcons.General.TodoDefault"/>
+            
+        <!-- Notification Group -->
+        <notificationGroup id="TODO++ Notifications" displayType="BALLOON"/>
     </extensions>
     
     <actions>

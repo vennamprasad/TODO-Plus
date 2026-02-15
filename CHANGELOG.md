@@ -2,6 +2,14 @@
 
 All notable changes to the TODO++ plugin will be documented in this file.
 
+## [1.2.0] - 2026-02-15
+
+### Added
+- **Auto-Refresh**: TODO list now updates automatically when files are saved
+- **Column Sorting**: Click any column header to sort (Priority sorts by High > Medium > Low)
+- **Export Functionality**: Export your TODOs to CSV or Markdown files
+- **New Toolbar**: Improved toolbar with export buttons
+
 ## [1.1.3] - 2026-02-15
 
 ### Fixed

@@ -5,12 +5,12 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.ui.Gray
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.table.JBTable
-import com.todoplus.models.Priority
 import com.todoplus.models.TodoItem
 import com.todoplus.services.TodoScannerService
 import java.awt.*
@@ -19,6 +19,19 @@ import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
+import com.intellij.openapi.fileChooser.FileChooserFactory
+import com.intellij.openapi.fileChooser.FileSaverDescriptor
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
+import com.todoplus.exporter.TodoExporter
+import java.io.File
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
+import com.intellij.util.messages.MessageBusConnection
+import com.intellij.openapi.application.ApplicationManager
+import javax.swing.Timer
+import com.intellij.openapi.vfs.VirtualFile
 
 /**
  * Content panel for the TODO++ tool window
@@ -53,6 +66,9 @@ class TodoToolWindowContent(private val project: Project) {
             // Enable row selection
             setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
             
+            // Enable column sorting
+            autoCreateRowSorter = true
+            
             // Color-code priorities
             setDefaultRenderer(Any::class.java, PriorityColorRenderer())
             
@@ -65,6 +81,9 @@ class TodoToolWindowContent(private val project: Project) {
                 }
             })
         }
+        
+        // Configure custom sorting for priority column
+        configureSorting()
 
         // Create filter panel
         val filterPanel = createFilterPanel()
@@ -82,6 +101,18 @@ class TodoToolWindowContent(private val project: Project) {
                 addActionListener { scanProject() }
             }
             add(scanButton)
+            
+            val exportCsvButton = JButton("📄 Export CSV").apply {
+                toolTipText = "Export TODOs to CSV file"
+                addActionListener { exportTodos("csv") }
+            }
+            add(exportCsvButton)
+            
+            val exportMdButton = JButton("📋 Export Markdown").apply {
+                toolTipText = "Export TODOs to Markdown file"
+                addActionListener { exportTodos("md") }
+            }
+            add(exportMdButton)
             
             val clearFiltersButton = JButton("✖ Clear Filters").apply {
                 toolTipText = "Clear all filters"
@@ -109,6 +140,9 @@ class TodoToolWindowContent(private val project: Project) {
             add(JBScrollPane(table), BorderLayout.CENTER)
             add(statusLabel, BorderLayout.SOUTH)
         }
+        
+        // Auto-refresh on file save
+        setupAutoRefresh()
     }
 
     private fun createFilterPanel(): JPanel {
@@ -219,60 +253,45 @@ class TodoToolWindowContent(private val project: Project) {
             
             if (matches) {
                 filteredTodos.add(todo)
-                addTodoToTable(todo)
+                tableModel.addRow(arrayOf(
+                    todo.priority?.name ?: "-",
+                    if (todo.assignee != null) "@${todo.assignee}" else "-",
+                    todo.category ?: "-",
+                    todo.description,
+                    todo.getFileName(),
+                    todo.lineNumber
+                ))
             }
         }
         
-        if (allTodos.isNotEmpty()) {
-            updateStatistics()
-        } else {
-            statusLabel.text = "Showing ${filteredTodos.size} of ${allTodos.size} TODOs"
-        }
+        updateStatistics()
     }
     
     private fun updateStatistics() {
-        val scanner = project.service<TodoScannerService>()
-        val stats = scanner.getStatistics(allTodos)
+        val count = filteredTodos.size
+        val highPriority = filteredTodos.count { it.priority?.name == "HIGH" }
+        val mediumPriority = filteredTodos.count { it.priority?.name == "MEDIUM" }
+        val lowPriority = filteredTodos.count { it.priority?.name == "LOW" }
         
-        // Count TODOs missing metadata
-        val missingPriority = allTodos.count { it.priority == null }
-        val missingAssignee = allTodos.count { it.assignee == null }
+        val missingPriority = filteredTodos.count { it.priority == null }
+        val missingAssignee = filteredTodos.count { it.assignee == null }
         
-        val statusParts = mutableListOf<String>()
-        
-        // Main stats
-        if (filteredTodos.size < allTodos.size) {
-            statusParts.add("Showing ${filteredTodos.size} of ${stats.total} TODOs")
-        } else {
-            statusParts.add("Found ${stats.total} TODOs")
+        val sb = StringBuilder("Found $count TODOs")
+        if (count > 0) {
+            sb.append(" ($highPriority high, $mediumPriority medium, $lowPriority low)")
+            
+            if (missingPriority > 0 || missingAssignee > 0) {
+                sb.append(" | ⚠️ ")
+                val warnings = mutableListOf<String>()
+                if (missingPriority > 0) warnings.add("$missingPriority need priority")
+                if (missingAssignee > 0) warnings.add("$missingAssignee unassigned")
+                sb.append(warnings.joinToString(", "))
+            }
         }
         
-        // Priority breakdown
-        val priorityBreakdown = buildString {
-            append("(")
-            val parts = mutableListOf<String>()
-            if (stats.highPriority > 0) parts.add("${stats.highPriority} high")
-            if (stats.mediumPriority > 0) parts.add("${stats.mediumPriority} medium")
-            if (stats.lowPriority > 0) parts.add("${stats.lowPriority} low")
-            append(parts.joinToString(", "))
-            append(")")
-        }
-        if (stats.highPriority + stats.mediumPriority + stats.lowPriority > 0) {
-            statusParts.add(priorityBreakdown)
-        }
-        
-        // Missing metadata alerts
-        val alerts = mutableListOf<String>()
-        if (missingPriority > 0) alerts.add("$missingPriority need priority")
-        if (missingAssignee > 0) alerts.add("$missingAssignee unassigned")
-        
-        if (alerts.isNotEmpty()) {
-            statusParts.add("⚠️ ${alerts.joinToString(", ")}")
-        }
-        
-        statusLabel.text = statusParts.joinToString(" | ")
+        statusLabel.text = sb.toString()
     }
-
+    
     private fun clearFilters() {
         priorityFilter.selectedIndex = 0
         assigneeFilter.text = ""
@@ -280,36 +299,31 @@ class TodoToolWindowContent(private val project: Project) {
         searchField.text = ""
         applyFilters()
     }
-
+    
     private fun refreshTodos() {
         scanProject()
     }
-
+    
     private fun navigateToSelectedTodo() {
         val selectedRow = table.selectedRow
-        if (selectedRow < 0 || selectedRow >= filteredTodos.size) return
-        
-        val todo = filteredTodos[selectedRow]
-        val file = LocalFileSystem.getInstance().findFileByPath(todo.filePath) ?: return
-        val descriptor = OpenFileDescriptor(project, file, todo.lineNumber - 1, 0)
-        FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
+        if (selectedRow != -1) {
+            // Convert view row index to model row index in case of sorting
+            val modelRow = table.convertRowIndexToModel(selectedRow)
+            val todo = filteredTodos[modelRow]
+            
+            val virtualFile = LocalFileSystem.getInstance().findFileByPath(todo.filePath)
+            if (virtualFile != null) {
+                // Navigate to file and line
+                FileEditorManager.getInstance(project).openTextEditor(
+                    OpenFileDescriptor(project, virtualFile, todo.lineNumber - 1, 0),
+                    true
+                )
+            }
+        }
     }
-
-    private fun addTodoToTable(todo: TodoItem) {
-        tableModel.addRow(
-            arrayOf(
-                todo.priority?.name ?: "-",
-                todo.assignee ?: "-",
-                todo.category ?: "-",
-                todo.description,
-                todo.getFileName(),
-                todo.lineNumber
-            )
-        )
-    }
-
+    
     /**
-     * Custom cell renderer for color-coding priorities and highlighting missing metadata
+     * Custom cell renderer for priority column
      */
     private class PriorityColorRenderer : DefaultTableCellRenderer() {
         override fun getTableCellRendererComponent(
@@ -333,7 +347,7 @@ class TodoToolWindowContent(private val project: Project) {
                             else -> {
                                 // No priority - use italic gray to indicate it needs attention
                                 component.font = component.font.deriveFont(Font.ITALIC)
-                                Color(150, 150, 150)
+                                Gray._150
                             }
                         }
                         if (value?.toString() != "-") {
@@ -343,7 +357,7 @@ class TodoToolWindowContent(private val project: Project) {
                     1, 2 -> {
                         // Assignee and Category columns - gray out if empty
                         if (value?.toString() == "-") {
-                            component.foreground = Color(150, 150, 150)
+                            component.foreground = Gray._150
                             component.font = component.font.deriveFont(Font.ITALIC)
                         } else {
                             component.foreground = table.foreground
@@ -357,5 +371,132 @@ class TodoToolWindowContent(private val project: Project) {
             
             return component
         }
+    }
+    
+    /**
+     * Configure custom sorting for table columns
+     */
+    private fun configureSorting() {
+        val sorter = table.rowSorter as? javax.swing.table.TableRowSorter<*> ?: return
+        
+        // Column 0: Priority - Custom comparator (HIGH > MEDIUM > LOW > None)
+        sorter.setComparator(0) { o1, o2 ->
+            val p1 = when (o1?.toString()) {
+                "HIGH" -> 0
+                "MEDIUM" -> 1
+                "LOW" -> 2
+                else -> 3  // None or null
+            }
+            val p2 = when (o2?.toString()) {
+                "HIGH" -> 0
+                "MEDIUM" -> 1
+                "LOW" -> 2
+                else -> 3  // None or null
+            }
+            p1.compareTo(p2)
+        }
+        
+        // Column 5: Line - Numeric sorting
+        sorter.setComparator(5) { o1, o2 ->
+            val n1 = o1?.toString()?.toIntOrNull() ?: Int.MAX_VALUE
+            val n2 = o2?.toString()?.toIntOrNull() ?: Int.MAX_VALUE
+            n1.compareTo(n2)
+        }
+        
+        // Columns 1, 2 (Assignee, Category): String sorting with nulls last
+        for (col in listOf(1, 2)) {
+            sorter.setComparator(col) { o1, o2 ->
+                val s1 = o1?.toString() ?: ""
+                val s2 = o2?.toString() ?: ""
+                when {
+                    s1.isEmpty() && s2.isEmpty() -> 0
+                    s1.isEmpty() -> 1  // Nulls last
+                    s2.isEmpty() -> -1
+                    else -> s1.compareTo(s2, ignoreCase = true)
+                }
+            }
+        }
+    }
+
+    /**
+     * Export TODOs to file
+     */
+    private fun exportTodos(format: String) {
+        // Get TODOs to export (filtered or all)
+        val todosToExport = if (filteredTodos.isNotEmpty()) filteredTodos else allTodos
+        
+        if (todosToExport.isEmpty()) {
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("TODO++ Notifications")
+                .createNotification("Nothing to export", "No TODO items found.", NotificationType.WARNING)
+                .notify(project)
+            return
+        }
+        
+        // Create file descriptor
+        val descriptor = FileSaverDescriptor(
+            "Export TODOs",
+            "Save TODO list as ${format.uppercase()}"
+        )
+        
+        // Show file chooser
+        val fileSaver = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
+        val virtualFileWrapper = fileSaver.save(null as VirtualFile?, "todos.$format") ?: return
+        
+        try {
+            val file = virtualFileWrapper.file
+            val content = when (format) {
+                "csv" -> TodoExporter().exportToCsv(todosToExport)
+                "md" -> TodoExporter().exportToMarkdown(todosToExport)
+                else -> ""
+            }
+            
+            file.writeText(content)
+            
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("TODO++ Notifications")
+                .createNotification("Export Successful", "Saved ${todosToExport.size} TODOs to ${file.name}", NotificationType.INFORMATION)
+                .notify(project)
+                
+        } catch (e: Exception) {
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("TODO++ Notifications")
+                .createNotification("Export Failed", e.message ?: "Unknown error", NotificationType.ERROR)
+                .notify(project)
+        }
+    }
+    
+    /**
+     * Setup auto-refresh on file save
+     */
+    private fun setupAutoRefresh() {
+        val connection: MessageBusConnection = project.messageBus.connect()
+        
+        // Debounce timer to prevent rapid refreshes
+        val refreshTimer = Timer(500) {
+            ApplicationManager.getApplication().invokeLater {
+                scanProject()
+            }
+        }
+        refreshTimer.isRepeats = false
+        
+        connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+            override fun after(events: List<VFileEvent>) {
+                // Check if any relevant files were changed
+                val relevantChanges = events.any { event ->
+                    val file = event.file
+                    file != null && !file.isDirectory && isValidFileType(file.name)
+                }
+                
+                if (relevantChanges) {
+                    refreshTimer.restart()
+                }
+            }
+        })
+    }
+    
+    private fun isValidFileType(fileName: String): Boolean {
+        val extensions = listOf("kt", "java", "xml", "js", "ts", "py", "go", "rs", "cpp", "c", "h", "cs", "swift", "rb", "php", "scala", "groovy")
+        return extensions.any { fileName.endsWith(".$it", ignoreCase = true) }
     }
 }
