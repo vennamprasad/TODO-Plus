@@ -2,6 +2,13 @@
 
 All notable changes to the TODO++ plugin will be documented in this file.
 
+## [1.1.3] - 2026-02-15
+
+### Fixed
+- Real-time TODO updates: Scanner now reads from editor buffer (PSI) instead of disk
+- TODOs update immediately when changed, even before saving the file
+- "Scan Project" now picks up unsaved changes
+
 ## [1.1.2] - 2026-02-15
 
 ### Changed

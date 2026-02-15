@@ -38,6 +38,7 @@ class TodoScannerService(private val project: Project) {
 
     /**
      * Scan a single file for TODO items
+     * Uses PSI to read from editor buffer (unsaved changes) instead of disk
      */
     fun scanFile(file: VirtualFile): List<TodoItem> {
         if (!file.isValid || file.isDirectory) {
@@ -45,7 +46,16 @@ class TodoScannerService(private val project: Project) {
         }
 
         try {
-            val content = String(file.contentsToByteArray())
+            // Try to get content from PSI (editor buffer) first
+            val psiFile = PsiManager.getInstance(project).findFile(file)
+            val content = if (psiFile != null) {
+                // Get from editor buffer (includes unsaved changes)
+                psiFile.text
+            } else {
+                // Fallback to disk content
+                String(file.contentsToByteArray())
+            }
+            
             val lines = content.lines()
             return parser.parseLines(lines, file.path)
         } catch (e: Exception) {
