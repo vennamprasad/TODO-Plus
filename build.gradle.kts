@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.todoplus"
-version = "1.1.1"
+version = "1.1.2"
 
 repositories {
     mavenCentral()
@@ -37,7 +37,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("233")
-        untilBuild.set("253.*")  // Support up to 2025.3 and beyond
+        // No untilBuild - supports all future versions
     }
 
     signPlugin {

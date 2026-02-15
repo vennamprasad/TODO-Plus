@@ -2,6 +2,12 @@
 
 All notable changes to the TODO++ plugin will be documented in this file.
 
+## [1.1.2] - 2026-02-15
+
+### Changed
+- Removed `untilBuild` limit to support all current and future IDE versions
+- Now compatible with Android Studio Panda (2025.3.1) and all future releases
+
 ## [1.1.1] - 2026-02-15
 
 ### Fixed
