@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.todoplus</id>
     <name>TODO++</name>
-    <vendor email="support@todoplus.dev" url="https://github.com/yourusername/TODO-plus">TODO++ Team</vendor>
+    <vendor email="support@todoplus.dev" url="https://github.com/vennamprasad/TODO-Plus">TODO++ Team</vendor>
     
     <description><![CDATA[
     <h2>Enhanced TODO Management for Developers</h2>

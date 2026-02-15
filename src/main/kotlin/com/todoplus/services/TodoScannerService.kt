@@ -10,6 +10,7 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.todoplus.models.TodoItem
 import com.todoplus.parser.TodoParser
+import com.intellij.openapi.application.runReadAction
 
 /**
  * Service for scanning project files and extracting TODO items
@@ -30,6 +31,8 @@ class TodoScannerService(private val project: Project) {
         
         // Parse each file
         files.forEach { file ->
+            // Check for cancellation
+            com.intellij.openapi.progress.ProgressManager.checkCanceled()
             todos.addAll(scanFile(file))
         }
         
@@ -45,22 +48,24 @@ class TodoScannerService(private val project: Project) {
             return emptyList()
         }
 
-        try {
-            // Try to get content from PSI (editor buffer) first
-            val psiFile = PsiManager.getInstance(project).findFile(file)
-            val content = if (psiFile != null) {
-                // Get from editor buffer (includes unsaved changes)
-                psiFile.text
-            } else {
-                // Fallback to disk content
-                String(file.contentsToByteArray())
+        return try {
+            runReadAction {
+                // Try to get content from PSI (editor buffer) first
+                val psiFile = PsiManager.getInstance(project).findFile(file)
+                val content = if (psiFile != null) {
+                    // Get from editor buffer (includes unsaved changes)
+                    psiFile.text
+                } else {
+                    // Fallback to disk content
+                    String(file.contentsToByteArray())
+                }
+                
+                val lines = content.lines()
+                parser.parseLines(lines, file.path)
             }
-            
-            val lines = content.lines()
-            return parser.parseLines(lines, file.path)
         } catch (e: Exception) {
             // Skip files that can't be read
-            return emptyList()
+            emptyList()
         }
     }
 
@@ -69,18 +74,20 @@ class TodoScannerService(private val project: Project) {
      * Filters to only include source code files
      */
     private fun findAllFiles(): List<VirtualFile> {
-        val files = mutableListOf<VirtualFile>()
-        val scope = GlobalSearchScope.projectScope(project)
-        
-        // Get common source file types
-        val fileTypes = getSourceFileTypes()
-        
-        fileTypes.forEach { fileType ->
-            val virtualFiles = FileTypeIndex.getFiles(fileType, scope)
-            files.addAll(virtualFiles)
+        return runReadAction {
+            val files = mutableListOf<VirtualFile>()
+            val scope = GlobalSearchScope.projectScope(project)
+            
+            // Get common source file types
+            val fileTypes = getSourceFileTypes()
+            
+            fileTypes.forEach { fileType ->
+                val virtualFiles = FileTypeIndex.getFiles(fileType, scope)
+                files.addAll(virtualFiles)
+            }
+            
+            files
         }
-        
-        return files
     }
 
     /**
@@ -108,10 +115,12 @@ class TodoScannerService(private val project: Project) {
         )
         
         extensions.forEach { ext ->
-            val fileType = fileTypeManager.getFileTypeByExtension(ext)
-            if (!types.contains(fileType)) {
-                types.add(fileType)
-            }
+            try {
+                val fileType = fileTypeManager.getFileTypeByExtension(ext)
+                if (!types.contains(fileType)) {
+                    types.add(fileType)
+                }
+            } catch (ignored: Exception) {}
         }
         
         return types

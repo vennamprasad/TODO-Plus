@@ -32,6 +32,9 @@ import com.intellij.util.messages.MessageBusConnection
 import com.intellij.openapi.application.ApplicationManager
 import javax.swing.Timer
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.progress.ProgressIndicator
 
 /**
  * Content panel for the TODO++ tool window
@@ -200,20 +203,32 @@ class TodoToolWindowContent(private val project: Project) {
     fun getContent(): JComponent = mainPanel
 
     private fun scanProject() {
-        statusLabel.text = "Scanning project..."
-        allTodos.clear()
-        
-        try {
-            val scanner = project.service<TodoScannerService>()
-            val foundTodos = scanner.scanProject()
-            allTodos.addAll(foundTodos)
-            
-            applyFilters()
-            
-            updateStatistics()
-        } catch (e: Exception) {
-            statusLabel.text = "Error scanning project: ${e.message}"
-        }
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Scanning for TODOs", true) {
+            override fun run(indicator: ProgressIndicator) {
+                // Background thread
+                indicator.text = "Scanning project files..."
+                indicator.isIndeterminate = true
+                
+                try {
+                    val scanner = project.service<TodoScannerService>()
+                    // Run scanning (service handles Read Actions internally)
+                    val foundTodos = scanner.scanProject()
+                    
+                    // Update UI on EDT
+                    ApplicationManager.getApplication().invokeLater {
+                        allTodos.clear()
+                        allTodos.addAll(foundTodos)
+                        
+                        applyFilters()
+                        updateStatistics()
+                    }
+                } catch (e: Exception) {
+                    ApplicationManager.getApplication().invokeLater {
+                        statusLabel.text = "Error scanning project: ${e.message}"
+                    }
+                }
+            }
+        })
     }
 
     private fun applyFilters() {
