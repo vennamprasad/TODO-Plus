@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to the TODO++ plugin will be documented in this file.
+## [1.6.4] - 2026-02-18
+
+### Added
+- **Plugin Icon**: Added distinct plugin logo for easier identification in the Plugin Manager.
+- **Polish**: Final polish release ensuring standard restart behavior on install.
+
 ## [1.6.3] - 2026-02-18
 
 ### Fixed

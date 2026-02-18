@@ -4,31 +4,29 @@
     <vendor email="support@todoplus.dev" url="https://github.com/vennamprasad/TODO-Plus">TODO++ Team</vendor>
     
     <description><![CDATA[
-    <h2>Enhanced TODO Management for Developers</h2>
+    <h2>🚀 Turbocharge Your TODOs with TODO++</h2>
     
-    <p>Take your TODO comments to the next level! TODO++ adds powerful features to manage, organize, and track TODOs across your entire project.</p>
+    <p><strong>TODO++</strong> (Todo Plus Plus) transforms standard TODO comments into a powerful task management system directly within IntelliJ IDEA. Organize, track, and complete tasks without leaving your code.</p>
     
-    <h3>✨ Key Features:</h3>
+    <h3>✨ Status: v1.6.4 (Stable & Polished)</h3>
+    
+    <h3>🔥 Key Features:</h3>
     <ul>
-        <li><strong>Enhanced TODO Syntax</strong> - Assign TODOs to team members, set priorities, and categorize them</li>
-        <li><strong>Smart Project Scanning</strong> - Automatically scans 15+ programming languages</li>
-        <li><strong>Color-Coded Priorities</strong> - Visual distinction with RED (High), ORANGE (Medium), GREEN (Low)</li>
-        <li><strong>Custom Priorities</strong> - Define your own priority levels and colors</li>
-        <li><strong>Custom Tags</strong> - Add arbitrary metadata like 'risk:high', 'estimate:2d'</li>
-        <li><strong>Due Dates</strong> - Track deadlines with 'due:YYYY-MM-DD' and see overdue alerts</li>
-        <li><strong>Issue Integration</strong> - Link TODOs to GitHub/Jira issues and open them directly</li>
-        <li><strong>Powerful Filtering</strong> - Filter by priority, assignee, category, or search by description</li>
-        <li><strong>Quick Navigation</strong> - Double-click any TODO to jump straight to the code</li>
-        <li><strong>Smart Alerts</strong> - See which TODOs need priority or assignee at a glance</li>
+        <li><strong>Advanced Syntax</strong>: Support for <code>@assignee</code>, <code>priority:high</code>, <code>due:today</code>, and custom tags.</li>
+        <li><strong>Smart Scanning</strong>: Automatically finds TODOs in Java, Kotlin, Python, JavaScript, SQL, Shell, and 10+ other languages.</li>
+        <li><strong>Custom Priorities</strong>: Define your own priority levels (e.g., CRITICAL, OPTIONAL) with custom colors.</li>
+        <li><strong>Due Date Tracking</strong>: Highlights overdue tasks in RED and upcoming tasks in ORANGE.</li>
+        <li><strong>Issue Tracker Integration</strong>: Click to open GitHub/Jira issues directly from the TODO list (matches <code>PROJ-123</code>).</li>
+        <li><strong>Robust Filtering</strong>: Filter by Assignee, Priority, Category, or arbitrary tags (e.g., <code>risk:high</code>).</li>
+        <li><strong>Seamless Navigation</strong>: Double-click to jump straight to the code line.</li>
     </ul>
+
+    <h3>📝 Usage Examples:</h3>
+    <pre><code>// TODO(@john priority:critical due:today): Fix production crash
+// TODO(feature:login risk:low): Add "Remember Me" checkbox
+# TODO(issue:PROJ-456): Refactor database schema (Python support!)</code></pre>
     
-    <h3>📝 Supported Syntax:</h3>
-    <pre><code>// TODO(@assignee priority:level category:type): Description</code></pre>
-    
-    <h3>💡 Examples:</h3>
-    <pre><code>// TODO(@john priority:high category:bug): Fix memory leak
-// TODO(@sarah priority:medium category:feature): Add dark mode
-// TODO(priority:low): Refactor this later</code></pre>
+    <p><em>Installation Note: Please restart the IDE after installation to ensure all features load correctly.</em></p>
     ]]></description>
     
     <!-- Product and plugin compatibility -->

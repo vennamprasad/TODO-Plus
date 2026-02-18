@@ -26,6 +26,7 @@ Assign TODOs to team members, set priorities, add due dates, and track issues:
 ### 🔗 Issue Tracker Integration
 - **Link Issues**: Add `issue:ID` (e.g., `issue:PROJ-123`) to your TODOs.
 - **Auto-Detection**: Configure regex patterns (e.g., `[A-Z]+-\d+`) to automatically detect issue IDs in descriptions.
+- **Python Support**: Now supports Python (`#`) and SQL (`--`) comment styles.
 - **Quick Access**: Right-click any TODO to "Open in Issue Tracker" (Jira, GitHub, GitLab, etc.).
 
 ### 🎨 Custom Priorities & Colors
@@ -35,11 +36,12 @@ Assign TODOs to team members, set priorities, add due dates, and track issues:
 
 ### 🏷️ Custom Tags (Key-Value Pairs)
 - **Arbitrary Metadata**: Add any `key:value` pair to your TODOs.
+- **Quoted Values**: Support for tags with spaces: `client:"Acme Corp"`, `msg:"fix later"`.
 - **Examples**: `risk:low`, `estimate:4h`, `reviewer:@alice`.
 - **Filtering**: Search for `risk:high` to find specific tasks.
 
 ### 🔍 Smart Project Scanning
-- Automatically scans **15+ programming languages** (Java, Kotlin, JavaScript, Python, Go, Rust, C++, and more)
+- Automatically scans **15+ programming languages** (Java, Kotlin, JavaScript, Python, SQL, Lua, Shell, and more)
 - Real-time statistics showing TODO breakdown by priority
 - Fast and efficient file indexing
 
@@ -59,7 +61,8 @@ Assign TODOs to team members, set priorities, add due dates, and track issues:
 - **Double-click** any TODO to jump straight to that line in your code
 - No more hunting through files!
 
-## 📦 Installation
+
+### 📦 Installation
 
 ### From Marketplace (Coming Soon)
 1. Open IntelliJ IDEA
@@ -71,8 +74,8 @@ Assign TODOs to team members, set priorities, add due dates, and track issues:
 1. Download the latest release from [Releases](../../releases)
 2. Open IntelliJ IDEA
 3. Go to `Settings/Preferences → Plugins → ⚙️ (gear icon) → Install Plugin from Disk...`
-4. Select the downloaded `.zip` file
-5. Restart IntelliJ IDEA
+4. Select the downloaded `.zip` file (e.g., `TODO-Plus-1.6.4.zip`)
+5. Restart IntelliJ IDEA (Required)
 
 ### Build from Source
 ```bash
@@ -80,7 +83,8 @@ git clone https://github.com/yourusername/TODO-plus.git
 cd TODO-plus
 ./gradlew buildPlugin
 ```
-Find the plugin in `build/distributions/TODO-Plus-1.0.0.zip`
+
+Find the plugin in `build/distributions/TODO-Plus-1.6.4.zip`
 
 ## 🎯 Quick Start
 
@@ -104,11 +108,13 @@ Find the plugin in `build/distributions/TODO-Plus-1.0.0.zip`
 ## 📖 Usage Examples
 
 ### Basic TODOs
+
 ```kotlin
 // TODO: Add input validation
 ```
 
 ### Priority-based
+
 ```kotlin
 // TODO(priority:high): Fix critical security issue
 // TODO(priority:medium): Improve performance
@@ -116,6 +122,7 @@ Find the plugin in `build/distributions/TODO-Plus-1.0.0.zip`
 ```
 
 ### Team Assignment
+
 ```kotlin
 // TODO(@alice): Review this implementation
 // TODO(@bob): Update documentation
@@ -123,6 +130,7 @@ Find the plugin in `build/distributions/TODO-Plus-1.0.0.zip`
 ```
 
 ### Categorized
+
 ```kotlin
 // TODO(category:bug): Memory leak in connection pool
 // TODO(category:feature): Add dark mode support
@@ -131,13 +139,14 @@ Find the plugin in `build/distributions/TODO-Plus-1.0.0.zip`
 ```
 
 ### Full Format
+
 ```kotlin
 // TODO(@john priority:high category:bug): Fix authentication race condition
 ```
 
 ## ⚙️ Supported Languages
 
-Java • Kotlin • JavaScript • TypeScript • Python • Go • Rust • C/C++ • C# • Swift • Ruby • PHP • Scala • Groovy • HTML • XML
+Java • Kotlin • JavaScript • TypeScript • Python • Go • Rust • C/C++ • C# • Swift • Ruby • PHP • Scala • Groovy • HTML • XML • SQL • Shell • Lua
 
 ## 🤝 Contributing
 
