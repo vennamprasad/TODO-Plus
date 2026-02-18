@@ -177,7 +177,7 @@ class TodoToolWindowContent(private val project: Project) {
         priorityFilter.removeAllItems()
         priorityFilter.addItem("All Priorities")
         
-        priorityFilter.addItem("All Priorities")
+
         
         val settings = com.todoplus.settings.TodoSettingsService.getInstance()
         settings.getPriorities().forEach { 

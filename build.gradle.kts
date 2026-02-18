@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.todoplus"
-version = "1.6.1"
+version = "1.6.3"
 
 repositories {
     mavenCentral()

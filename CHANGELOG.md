@@ -1,6 +1,17 @@
 # Changelog
 
 All notable changes to the TODO++ plugin will be documented in this file.
+## [1.6.3] - 2026-02-18
+
+### Fixed
+- **UI Bug**: Fixed an issue where "All Priorities" appeared twice in the Priority filter dropdown.
+
+## [1.6.2] - 2026-02-18
+
+### Fixed
+- **Multi-language Support**: Fixed syntax errors in Python and other languages by supporting `#` and `--` style comments (in addition to `//`).
+- **Code Hardening**: Improved robustness with logging and support for quoted values in tags (e.g., `tag:"value with spaces"`).
+
 ## [1.6.1] - 2026-02-18
 
 ### Fixed

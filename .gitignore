@@ -37,3 +37,4 @@ local.properties
 *.bak
 *.swp
 *~
+/LINKEDIN_POST.md

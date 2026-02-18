@@ -17,9 +17,9 @@ class TodoParser(private val issuePattern: String = "") {
 
     companion object {
         // Regex pattern to match TODO comments with optional metadata
-        // Matches: // TODO(@assignee priority:level category:type): Description
+        // Matches: // TODO... or # TODO... or -- TODO...
         private val TODO_PATTERN = Regex(
-            """//\s*TODO\s*(?:\((.*?)\))?\s*:\s*(.+)""",
+            """(?://|#|--)\s*TODO\s*(?:\((.*?)\))?\s*:\s*(.+)""",
             RegexOption.IGNORE_CASE
         )
 
@@ -113,8 +113,8 @@ class TodoParser(private val issuePattern: String = "") {
         var dueDate: java.time.LocalDate? = null
         val tags = mutableMapOf<String, String>()
 
-        // Split by spaces, but respect potential future quoting (simple split for now)
-        val parts = metadataStr.split(Regex("\\s+"))
+        // Use custom splitter to respect quotes
+        val parts = splitMetadata(metadataStr)
 
         for (part in parts) {
             when {
@@ -127,7 +127,12 @@ class TodoParser(private val issuePattern: String = "") {
                     val keyVal = part.split(":", limit = 2)
                     if (keyVal.size == 2) {
                         val key = keyVal[0].lowercase()
-                        val value = keyVal[1]
+                        var value = keyVal[1]
+                        
+                        // Strip quotes if present
+                        if (value.startsWith("\"") && value.endsWith("\"") && value.length >= 2) {
+                            value = value.substring(1, value.length - 1)
+                        }
 
                         when (key) {
                             "priority" -> priority = Priority.parse(value)
@@ -143,6 +148,39 @@ class TodoParser(private val issuePattern: String = "") {
         }
 
         return Metadata(assignee, priority, category, issueId, dueDate, tags)
+    }
+
+    /**
+     * Split metadata string by spaces, ignoring spaces inside quotes
+     */
+    private fun splitMetadata(str: String): List<String> {
+        val result = mutableListOf<String>()
+        val currentToken = StringBuilder()
+        var inQuote = false
+
+        for (char in str) {
+            when {
+                char == '"' -> {
+                    inQuote = !inQuote
+                    currentToken.append(char)
+                }
+                char.isWhitespace() -> {
+                    if (inQuote) {
+                        currentToken.append(char)
+                    } else if (currentToken.isNotEmpty()) {
+                        result.add(currentToken.toString())
+                        currentToken.clear()
+                    }
+                }
+                else -> currentToken.append(char)
+            }
+        }
+        
+        if (currentToken.isNotEmpty()) {
+            result.add(currentToken.toString())
+        }
+        
+        return result
     }
 
     private fun parseDueDate(value: String): java.time.LocalDate? {

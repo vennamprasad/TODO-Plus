@@ -196,4 +196,43 @@ class TodoParserTest {
         assertNotNull(result)
         assertNull(result.issueId)
     }
+
+    @Test
+    fun `test parse python and sql style comments`() {
+        val pythonLine = "# TODO(@me): Python comment"
+        val resultPython = parser.parseLine(pythonLine, "script.py", 1)
+        assertNotNull(resultPython)
+        assertEquals("Python comment", resultPython.description)
+        assertEquals("me", resultPython.assignee)
+
+        val sqlLine = "-- TODO(priority:high): SQL comment"
+        val resultSql = parser.parseLine(sqlLine, "query.sql", 1)
+        assertNotNull(resultSql)
+        assertEquals("SQL comment", resultSql.description)
+        assertEquals(Priority.HIGH, resultSql.priority)
+    }
+
+    @Test
+    fun `test parse quoted metadata`() {
+        val line = "// TODO(note:\"This has spaces\" tag:\"complex value\"): Quoted test"
+        val result = parser.parseLine(line, "test.kt", 1)
+        
+        assertNotNull(result)
+        assertEquals("Quoted test", result.description)
+        assertEquals("This has spaces", result.tags["note"])
+        assertEquals("complex value", result.tags["tag"])
+    }
+
+    @Test
+    fun `test parse mixed quoted and unquoted`() {
+        val line = "// TODO(@john priority:high note:\"Keep it simple\"): Mixed test"
+        val result = parser.parseLine(line, "test.kt", 1)
+        
+        assertNotNull(result)
+        assertEquals("Mixed test", result.description)
+        assertEquals("john", result.assignee)
+        assertEquals(Priority.HIGH, result.priority)
+        assertEquals("Keep it simple", result.tags["note"])
+    }
 }
+

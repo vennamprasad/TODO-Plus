@@ -18,6 +18,10 @@ import com.intellij.openapi.application.runReadAction
 @Service(Service.Level.PROJECT)
 class TodoScannerService(private val project: Project) {
 
+    companion object {
+        private val LOG = com.intellij.openapi.diagnostic.Logger.getInstance(TodoScannerService::class.java)
+    }
+
     private fun createParser(): TodoParser {
         val settings = com.todoplus.settings.TodoSettingsService.getInstance()
         return TodoParser(settings.getState().issuePattern)
@@ -27,10 +31,12 @@ class TodoScannerService(private val project: Project) {
      * Scan all files in the project and extract TODO items
      */
     fun scanProject(): List<TodoItem> {
+        LOG.info("Starting project scan for TODOs")
         val todos = mutableListOf<TodoItem>()
         
         // Get all files in project scope
         val files = findAllFiles()
+        LOG.info("Found ${files.size} files to scan")
         
         // Parse each file
         files.forEach { file ->
@@ -39,6 +45,7 @@ class TodoScannerService(private val project: Project) {
             todos.addAll(scanFile(file))
         }
         
+        LOG.info("Project scan completed. Found ${todos.size} TODO items")
         return todos
     }
 
@@ -68,7 +75,8 @@ class TodoScannerService(private val project: Project) {
                 parser.parseLines(lines, file.path)
             }
         } catch (e: Exception) {
-            // Skip files that can't be read
+            // Log warning instead of swallowing
+            LOG.warn("Failed to scan file: ${file.path}", e)
             emptyList()
         }
     }
@@ -115,7 +123,7 @@ class TodoScannerService(private val project: Project) {
             "php",  // PHP
             "scala",  // Scala
             "groovy",  // Groovy
-            "xml", "html"  // Markup
+            "xml", "html", "sql", "lua", "sh"  // Markup & Scripts
         )
         
         extensions.forEach { ext ->
@@ -124,7 +132,9 @@ class TodoScannerService(private val project: Project) {
                 if (!types.contains(fileType)) {
                     types.add(fileType)
                 }
-            } catch (ignored: Exception) {}
+            } catch (ignored: Exception) {
+                // Ignore unknown file types
+            }
         }
         
         return types
