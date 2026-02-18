@@ -3,23 +3,27 @@ package com.todoplus.models
 /**
  * Priority levels for TODO items
  */
-enum class Priority {
-    HIGH,
-    MEDIUM,
-    LOW;
-
+data class Priority(val name: String) : Comparable<Priority> {
+    
     companion object {
+        val HIGH = Priority("HIGH")
+        val MEDIUM = Priority("MEDIUM")
+        val LOW = Priority("LOW")
+
         /**
          * Parse priority from string (case-insensitive)
-         * Returns null if the string doesn't match any priority
          */
         fun parse(value: String?): Priority? {
             if (value == null) return null
-            return try {
-                valueOf(value.uppercase())
-            } catch (e: IllegalArgumentException) {
-                null
-            }
+            return Priority(value.uppercase())
         }
     }
+
+    override fun compareTo(other: Priority): Int {
+        // We can't implement meaningful comparison here without access to settings
+        // This will be handled by the UI sorter which has access to Project/Settings
+        return this.name.compareTo(other.name)
+    }
+    
+    override fun toString(): String = name
 }

@@ -10,14 +10,18 @@ class TodoExporter {
     /**
      * Export TODOs to CSV format
      */
+    /**
+     * Export TODOs to CSV format
+     */
     fun exportToCsv(todos: List<TodoItem>): String {
         val sb = StringBuilder()
         // Header
-        sb.append("Priority,Assignee,Category,Description,File,Line\n")
+        sb.append("Priority,Due Date,Assignee,Category,Description,File,Line\n")
         
         // Data
         for (todo in todos) {
             sb.append(escapeCsv(todo.priority?.name ?: "")).append(",")
+            sb.append(escapeCsv(todo.dueDate?.toString() ?: "")).append(",")
             sb.append(escapeCsv(todo.assignee ?: "")).append(",")
             sb.append(escapeCsv(todo.category ?: "")).append(",")
             sb.append(escapeCsv(todo.description)).append(",")
@@ -38,14 +42,30 @@ class TodoExporter {
         // Group by priority
         val byPriority = todos.groupBy { it.priority }
         
-        // High Priority
-        appendMarkdownSection(sb, "🔴 High Priority", byPriority[com.todoplus.models.Priority.HIGH])
+        // Get sorted priorities from settings to ensure order
+        val settings = com.todoplus.settings.TodoSettingsService.getInstance()
+        val sortedPriorities = settings.getPriorities().map { com.todoplus.models.Priority(it.name) }
         
-        // Medium Priority
-        appendMarkdownSection(sb, "🟠 Medium Priority", byPriority[com.todoplus.models.Priority.MEDIUM])
+        // Export known priorities in order
+        for (priority in sortedPriorities) {
+            val items = byPriority[priority]
+            if (!items.isNullOrEmpty()) {
+                val pName = priority.name
+                val icon = when(pName.uppercase()) {
+                    "HIGH", "CRITICAL" -> "🔴"
+                    "MEDIUM" -> "🟠"
+                    "LOW" -> "🟢"
+                    else -> "⚪"
+                }
+                appendMarkdownSection(sb, "$icon $pName Priority", items)
+            }
+        }
         
-        // Low Priority
-        appendMarkdownSection(sb, "🟢 Low Priority", byPriority[com.todoplus.models.Priority.LOW])
+        // Export priorities NOT in settings (e.g. if settings changed but todos exist)
+        val unknownPriorities = byPriority.keys.filterNotNull().filter { it !in sortedPriorities }
+        for (priority in unknownPriorities) {
+             appendMarkdownSection(sb, "⚪ ${priority.name} Priority", byPriority[priority])
+        }
         
         // No Priority
         appendMarkdownSection(sb, "⚪ No Priority", byPriority[null])
@@ -60,8 +80,9 @@ class TodoExporter {
         for (todo in items) {
             val assigneeStr = if (todo.assignee != null) "**@${todo.assignee}** " else ""
             val categoryStr = if (todo.category != null) "[${todo.category}] " else ""
+            val dueStr = if (todo.dueDate != null) "📅 ${todo.dueDate} " else ""
             
-            sb.append("- [ ] $assigneeStr$categoryStr${todo.description} (`${todo.getFileName()}:${todo.lineNumber}`)\n")
+            sb.append("- [ ] $dueStr$assigneeStr$categoryStr${todo.description} (`${todo.getFileName()}:${todo.lineNumber}`)\n")
         }
         sb.append("\n")
     }

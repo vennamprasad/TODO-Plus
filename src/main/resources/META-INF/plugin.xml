@@ -13,6 +13,10 @@
         <li><strong>Enhanced TODO Syntax</strong> - Assign TODOs to team members, set priorities, and categorize them</li>
         <li><strong>Smart Project Scanning</strong> - Automatically scans 15+ programming languages</li>
         <li><strong>Color-Coded Priorities</strong> - Visual distinction with RED (High), ORANGE (Medium), GREEN (Low)</li>
+        <li><strong>Custom Priorities</strong> - Define your own priority levels and colors</li>
+        <li><strong>Custom Tags</strong> - Add arbitrary metadata like 'risk:high', 'estimate:2d'</li>
+        <li><strong>Due Dates</strong> - Track deadlines with 'due:YYYY-MM-DD' and see overdue alerts</li>
+        <li><strong>Issue Integration</strong> - Link TODOs to GitHub/Jira issues and open them directly</li>
         <li><strong>Powerful Filtering</strong> - Filter by priority, assignee, category, or search by description</li>
         <li><strong>Quick Navigation</strong> - Double-click any TODO to jump straight to the code</li>
         <li><strong>Smart Alerts</strong> - See which TODOs need priority or assignee at a glance</li>
@@ -42,6 +46,19 @@
             
         <!-- Notification Group -->
         <notificationGroup id="TODO++ Notifications" displayType="BALLOON"/>
+        
+        <!-- Completion Contributor -->
+        <completion.contributor language="any" implementationClass="com.todoplus.completion.TodoCompletionContributor"/>
+        
+        <!-- Services -->
+        <applicationService serviceImplementation="com.todoplus.settings.TodoSettingsService"/>
+        
+        <!-- Settings -->
+        <projectConfigurable
+            parentId="tools"
+            instance="com.todoplus.settings.TodoSettingsConfigurable"
+            id="com.todoplus.settings.TodoSettingsConfigurable"
+            displayName="TODO++"/>
     </extensions>
     
     <actions>

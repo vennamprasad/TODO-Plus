@@ -1,61 +1,96 @@
-# How to Use TODO++ Tool Window
+# How to Use TODO++
 
-## Opening the Tool Window
+## 🚀 fast Start
 
-Once the plugin is installed, you can access the TODO++ tool window in two ways:
+1.  **Open Todo List**: Click **TODO++** at the bottom of the IDE.
+2.  **Write a Todo**: In your code, type `// TODO: Fix this later`.
+3.  **Scan**: Click the **🔍 Scan** button in the tool window.
 
-### Method 1: Tool Window Button
-1. Look at the **bottom** of your IntelliJ window
-2. Click on the **"TODO++"** button in the tool window bar
-3. The tool window will slide up showing your TODOs
+---
 
-### Method 2: View Menu
-1. Go to **View → Tool Windows → TODO++**
-2. The tool window will appear
+## 📝 Syntax Guide
 
-## What You'll See
+TODO++ parses comments in your code. You can add metadata inside parentheses `(...)` after the TODO keyword.
 
-The tool window displays a table with the following columns:
-
-| Column | Description | Example |
-|--------|-------------|---------|
-| **Priority** | HIGH/MEDIUM/LOW or "-" | HIGH |
-| **Assignee** | Person assigned (@username) or "-" | @john |
-| **Category** | Type of TODO  or "-" | bug, feature, refactor |
-| **Description** | The TODO text | Fix memory leak |
-| **File** | Source file name | UserService.kt |
-| **Line** | Line number in file | 14 |
-
-## Sample Data
-
-The tool window currently shows **sample demo data** to verify the UI works correctly:
-
+### Basic
 ```kotlin
-// TODO(@john priority:high category:bug): Fix memory leak in authentication
-// TODO(@sarah priority:medium category:feature): Add password reset feature
-// TODO(@team priority:low category:refactor): Clean up user profile method
-// TODO: Add input validation
+// TODO: Simple reminder
 ```
 
-## Next Steps
+### Priority, Assignee, Category
+Use these standard keys to organize your tasks:
+```kotlin
+// TODO(priority:high): Critical bug fix
+// TODO(@john): Assigned to John
+// TODO(category:refactor): Code cleanup
+```
+*   **Priorities**: `HIGH`, `MEDIUM`, `LOW` (or custom defined).
+*   **Assignee**: Starts with `@`.
+*   **Category**: Any text.
 
-In the upcoming weeks, we'll add:
-- **Real project scanning** - Parse actual files in your project
-- **Filters** - Filter by assignee, priority, or category
-- **Navigation** - Click a TODO to jump to that line in the code
-- **Refresh button** - Re-scan the project for new TODOs
-- **Statistics** - Dashboard showing TODO counts and breakdowns
+### 📅 Due Dates
+Set deadlines for your tasks. Overdue items will be highlighted in **RED**.
+```kotlin
+// TODO(due:2025-03-20): Release deadline
+// TODO(due:today): Must finish today
+// TODO(due:tomorrow): Prepare for meeting
+```
 
-## Testing Right Now
+### 🔗 Issue Linking
+Link TODOs to your external issue tracker (Jira, GitHub, etc.).
 
-Current version shows the UI working with hardcoded sample data. The parser is ready and tested, but not yet connected to live file scanning.
+**Option 1: Explicit Tag**
+```kotlin
+// TODO(issue:PROJ-123): Fix validation logic
+```
 
-**What works:**
-✅ Tool window appears in IDE
-✅ Table displays TODO information
-✅ Sample data demonstrates the format
+**Option 2: Auto-Detection**
+If configured, just mention the ID in the description:
+```kotlin
+// TODO: Fix validation logic (see PROJ-123)
+```
+*   **Action**: Right-click the TODO in the list and select **Open in Issue Tracker**.
+*   **Setup**: Go to **Settings > Tools > TODO++** to configure your URL template (e.g., `https://jira.com/browse/{id}`).
 
-**Coming next:**
-⏳ File scanner to find real TODOs
-⏳ Click to navigate to code
-⏳ Filters and search
+### 🏷️ Custom Tags
+Add any custom key-value pair you need.
+```kotlin
+// TODO(risk:high estimate:4h): Complex refactoring
+// TODO(reviewer:@alice type:security): Security audit needed
+```
+
+### ⚡ Power User Combo
+Combine everything into a comprehensive task definition:
+```kotlin
+// TODO(@me priority:high due:today issue:PROJ-101): Fix critical crash
+```
+
+---
+
+## ⚙️ Configuration
+
+Access settings via **Settings/Preferences > Tools > TODO++**.
+
+### Custom Priorities
+Define your own priority levels and colors!
+1.  Open Settings.
+2.  Click **+** to add a priority (e.g., "BLOCKER").
+3.  Choose a color (e.g., Purple).
+4.  Reorder items to define sort order.
+
+### Issue Tracker Setup
+1.  **Issue URL Template**: Define where links go.
+    *   Example: `https://github.com/myuser/myrepo/issues/{id}`
+2.  **Issue ID Pattern**: Regex to find IDs.
+    *   Default: `[A-Z]+-\d+` (Matches `PROJ-123`).
+
+---
+
+## 🔎 Tool Window Features
+
+*   **Sorting**: Click any column header (Priority, Due Date, etc.) to sort.
+*   **Filtering**:
+    *   Type `risk:high` in the search bar to see only high-risk items.
+    *   Type `@john` to see John's tasks.
+*   **Navigation**: Double-click any row to jump to the code.
+*   **Export**: Click the Export button to save your list as CSV or Markdown.

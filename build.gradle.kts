@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.todoplus"
-version = "1.2.0"
+version = "1.6.1"
 
 repositories {
     mavenCentral()
@@ -16,7 +16,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        create("IC", "2023.3")
+        create("IC", "2024.1")
         bundledPlugins("com.intellij.java")
         instrumentationTools()
     }
@@ -36,8 +36,8 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("231")
-        // No untilBuild - supports all future versions
+        sinceBuild.set("241")
+        untilBuild.set(provider { null })
     }
 
     signPlugin {

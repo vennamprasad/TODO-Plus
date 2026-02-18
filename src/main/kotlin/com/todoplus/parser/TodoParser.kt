@@ -13,7 +13,7 @@ import com.todoplus.models.TodoItem
  * - // TODO(category:bug): Todo with category
  * - // TODO(@john priority:high category:bug): Full format
  */
-class TodoParser {
+class TodoParser(private val issuePattern: String = "") {
 
     companion object {
         // Regex pattern to match TODO comments with optional metadata
@@ -44,19 +44,34 @@ class TodoParser {
     fun parseLine(line: String, filePath: String, lineNumber: Int): TodoItem? {
         val matchResult = TODO_PATTERN.find(line) ?: return null
 
-        val metadata = matchResult.groupValues[1] // Everything in parentheses
+        val metadataStr = matchResult.groupValues[1] // Everything in parentheses
         val description = matchResult.groupValues[2].trim()
 
-        // Extract metadata components
-        val assignee = extractAssignee(metadata)
-        val priority = extractPriority(metadata)
-        val category = extractCategory(metadata)
+        // Extract all metadata
+        val (assignee, priority, category, explicitIssueId, dueDate, tags) = extractMetadata(metadataStr)
+        
+        // If explicit issue ID not found, try to find in description using configured pattern
+        var finalIssueId = explicitIssueId
+        if (finalIssueId == null && issuePattern.isNotEmpty()) {
+             try {
+                 val regex = Regex(issuePattern)
+                 val match = regex.find(description)
+                 if (match != null) {
+                     finalIssueId = match.value
+                 }
+             } catch (e: Exception) {
+                 // Invalid regex, ignore
+             }
+        }
 
         return TodoItem(
             description = description,
             assignee = assignee,
             priority = priority,
             category = category,
+            issueId = finalIssueId,
+            tags = tags,
+            dueDate = dueDate,
             filePath = filePath,
             lineNumber = lineNumber,
             fullText = line.trim()
@@ -76,28 +91,69 @@ class TodoParser {
         }
     }
 
-    /**
-     * Extract assignee from metadata string
-     */
-    private fun extractAssignee(metadata: String): String? {
-        val match = ASSIGNEE_PATTERN.find(metadata) ?: return null
-        return match.groupValues[1]
-    }
+    private data class Metadata(
+        val assignee: String? = null,
+        val priority: Priority? = null,
+        val category: String? = null,
+        val issueId: String? = null,
+        val dueDate: java.time.LocalDate? = null,
+        val tags: Map<String, String> = emptyMap()
+    )
 
     /**
-     * Extract priority from metadata string
+     * Extract all metadata components from the metadata string
      */
-    private fun extractPriority(metadata: String): Priority? {
-        val match = PRIORITY_PATTERN.find(metadata) ?: return null
-        val priorityStr = match.groupValues[1]
-        return Priority.parse(priorityStr)
+    private fun extractMetadata(metadataStr: String): Metadata {
+        if (metadataStr.isBlank()) return Metadata()
+
+        var assignee: String? = null
+        var priority: Priority? = null
+        var category: String? = null
+        var issueId: String? = null
+        var dueDate: java.time.LocalDate? = null
+        val tags = mutableMapOf<String, String>()
+
+        // Split by spaces, but respect potential future quoting (simple split for now)
+        val parts = metadataStr.split(Regex("\\s+"))
+
+        for (part in parts) {
+            when {
+                // @assignee
+                part.startsWith("@") -> {
+                    assignee = part.substring(1)
+                }
+                // key:value
+                part.contains(":") -> {
+                    val keyVal = part.split(":", limit = 2)
+                    if (keyVal.size == 2) {
+                        val key = keyVal[0].lowercase()
+                        val value = keyVal[1]
+
+                        when (key) {
+                            "priority" -> priority = Priority.parse(value)
+                            "category" -> category = value
+                            "assignee", "assigned" -> assignee = value
+                            "due" -> dueDate = parseDueDate(value)
+                            "issue" -> issueId = value
+                            else -> tags[key] = value
+                        }
+                    }
+                }
+            }
+        }
+
+        return Metadata(assignee, priority, category, issueId, dueDate, tags)
     }
 
-    /**
-     * Extract category from metadata string
-     */
-    private fun extractCategory(metadata: String): String? {
-        val match = CATEGORY_PATTERN.find(metadata) ?: return null
-        return match.groupValues[1]
+    private fun parseDueDate(value: String): java.time.LocalDate? {
+        return try {
+            when (value.lowercase()) {
+                "today" -> java.time.LocalDate.now()
+                "tomorrow" -> java.time.LocalDate.now().plusDays(1)
+                else -> java.time.LocalDate.parse(value) // Expects YYYY-MM-DD
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 }

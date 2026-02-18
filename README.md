@@ -9,14 +9,34 @@ Take your TODO comments to the next level! TODO++ adds powerful features to mana
 ## ✨ Features
 
 ### 🎯 Enhanced TODO Syntax
-Assign TODOs to team members, set priorities, and categorize them:
+Assign TODOs to team members, set priorities, add due dates, and track issues:
 
 ```java
-// TODO(@john priority:high category:bug): Fix memory leak in authentication
-// TODO(@sarah priority:medium category:feature): Add password reset
-// TODO(priority:low category:refactor): Clean up this method
-// TODO: Regular TODOs work too!
+// TODO(@john priority:high category:bug): Fix memory leak
+// TODO(due:2024-03-20): API migration deadline
+// TODO(issue:PROJ-123): Linked to Jira issue
+// TODO(risk:high estimate:2d): Custom tags for better tracking
 ```
+
+### 📅 Due Dates & Overdue Alerts
+- **Track Deadlines**: Use `due:YYYY-MM-DD`, `due:today`, or `due:tomorrow`.
+- **Visual Alerts**: Overdue items are highlighted in **RED**. Items due soon are **ORANGE**.
+- **Sorting**: Sort the TODO list by due date to see what's urgent.
+
+### 🔗 Issue Tracker Integration
+- **Link Issues**: Add `issue:ID` (e.g., `issue:PROJ-123`) to your TODOs.
+- **Auto-Detection**: Configure regex patterns (e.g., `[A-Z]+-\d+`) to automatically detect issue IDs in descriptions.
+- **Quick Access**: Right-click any TODO to "Open in Issue Tracker" (Jira, GitHub, GitLab, etc.).
+
+### 🎨 Custom Priorities & Colors
+- **Default Priorities**: 🔴 High, 🟠 Medium, 🟢 Low.
+- **Customizable**: Add your own priorities (e.g., "Critical", "Optional") in **Settings > Tools > TODO++**.
+- **Colors**: Assign custom colors to each priority level.
+
+### 🏷️ Custom Tags (Key-Value Pairs)
+- **Arbitrary Metadata**: Add any `key:value` pair to your TODOs.
+- **Examples**: `risk:low`, `estimate:4h`, `reviewer:@alice`.
+- **Filtering**: Search for `risk:high` to find specific tasks.
 
 ### 🔍 Smart Project Scanning
 - Automatically scans **15+ programming languages** (Java, Kotlin, JavaScript, Python, Go, Rust, C++, and more)
@@ -29,11 +49,11 @@ Assign TODOs to team members, set priorities, and categorize them:
 - Professional UI integrated into IntelliJ's tool window system
 
 ### 🔎 Powerful Filtering
-- **Priority filter**: Show only high-priority TODOs
-- **Assignee filter**: See what's assigned to specific team members
-- **Category filter**: Focus on bugs, features, or refactoring tasks
-- **Search**: Find TODOs by description text
-- **One-click clear**: Reset all filters instantly
+- **Priority**: Filter by specific priority levels.
+- **Assignee**: See what's assigned to team members.
+- **Category**: Focus on bugs, features, or refactor tasks.
+- **Deep Search**: Search by description or specific tags (e.g., `risk:high`).
+- **One-click clear**: Reset all filters instantly.
 
 ### 🚀 Quick Navigation
 - **Double-click** any TODO to jump straight to that line in your code

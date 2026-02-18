@@ -1,7 +1,40 @@
 # Changelog
 
 All notable changes to the TODO++ plugin will be documented in this file.
+## [1.6.1] - 2026-02-18
 
+### Fixed
+- **IDE Compatibility**: Resolved compatibility issues with IntelliJ IDEA 2024.1+ and 2025.3.x
+- **Lifecycle Error**: Fixed `COMPONENTS_LOADED` error by optimizing service initialization
+- **Build Configuration**: Upgraded target platform SDK to 2024.1
+
+## [1.6.0] - 2026-02-18
+
+### Added
+- **Issue Tracker Integration**: Link TODOs to external issues (Jira, GitHub, etc.)
+- **Smart Linking**: Uses `issue:ID` tag or configurable Regex patterns
+- **Context Menu**: Right-click to "Open in Issue Tracker"
+
+## [1.5.0] - 2026-02-18
+
+### Added
+- **Due Dates**: specific deadlines using `due:YYYY-MM-DD`
+- **Smart Aliases**: Support for `due:today` and `due:tomorrow`
+- **Overdue Alerts**: Visual highlighting for overdue and upcoming tasks
+
+## [1.4.0] - 2026-02-18
+
+### Added
+- **Custom Priorities**: Create your own priority levels (e.g., Critical, Blocker)
+- **Custom Colors**: Assign unique colors to each priority level
+- **Settings**: New configuration page for managing priorities
+
+## [1.3.0] - 2026-02-18
+
+### Added
+- **Custom Tags**: Support for arbitrary key-value pairs (e.g., `risk:high`, `estimate:2d`)
+- **Tag Filtering**: Filter TODOs by specific tags
+- **Autocomplete**: improved suggestions for standard and custom keys
 ## [1.2.0] - 2026-02-15
 
 ### Added

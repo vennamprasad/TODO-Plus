@@ -18,7 +18,10 @@ import com.intellij.openapi.application.runReadAction
 @Service(Service.Level.PROJECT)
 class TodoScannerService(private val project: Project) {
 
-    private val parser = TodoParser()
+    private fun createParser(): TodoParser {
+        val settings = com.todoplus.settings.TodoSettingsService.getInstance()
+        return TodoParser(settings.getState().issuePattern)
+    }
 
     /**
      * Scan all files in the project and extract TODO items
@@ -61,6 +64,7 @@ class TodoScannerService(private val project: Project) {
                 }
                 
                 val lines = content.lines()
+                val parser = createParser()
                 parser.parseLines(lines, file.path)
             }
         } catch (e: Exception) {

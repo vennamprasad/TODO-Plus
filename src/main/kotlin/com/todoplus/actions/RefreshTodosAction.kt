@@ -32,6 +32,7 @@ class RefreshTodosAction : AnAction("Refresh TODOs", "Scan project for TODO item
         updateToolWindow(component, todos)
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun updateToolWindow(component: Any, todos: List<com.todoplus.models.TodoItem>) {
         // This is a simplified approach - in production you'd use a proper event system
         // For now, we'll need to add a method to refresh the tool window

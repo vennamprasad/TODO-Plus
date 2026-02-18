@@ -119,4 +119,81 @@ class TodoParserTest {
         assertEquals("Add dark mode", results[1].description)
         assertEquals("Simple todo", results[2].description)
     }
+
+    @Test
+    fun `test parse with tags`() {
+        val line = "// TODO(risk:high estimate:3d): Complex todo"
+        val result = parser.parseLine(line, "test.kt", 1)
+
+        assertNotNull(result)
+        assertEquals("Complex todo", result.description)
+        assertEquals("high", result.tags["risk"])
+        assertEquals("3d", result.tags["estimate"])
+        assertNull(result.priority)
+        assertNull(result.assignee)
+    }
+
+    @Test
+    fun `test parse mixed standard and custom tags`() {
+        val line = "// TODO(@me priority:high type:bug risk:critical): Mixed todo"
+        val result = parser.parseLine(line, "test.kt", 1)
+
+        assertNotNull(result)
+        assertEquals("Mixed todo", result.description)
+        assertEquals("me", result.assignee)
+        assertEquals(Priority.HIGH, result.priority)
+        
+        assertEquals("bug", result.tags["type"])
+        assertEquals("critical", result.tags["risk"])
+    }
+
+    @Test
+    fun `test parse with due date`() {
+        val today = java.time.LocalDate.now()
+        val line = "// TODO(due:today): Finish this today"
+        val result = parser.parseLine(line, "test.kt", 1)
+
+        assertNotNull(result)
+        assertEquals(today, result.dueDate)
+        
+        val specificDate = java.time.LocalDate.parse("2023-12-25")
+        val line2 = "// TODO(due:2023-12-25): Christmas task"
+        val result2 = parser.parseLine(line2, "test.kt", 2)
+        assertNotNull(result2)
+        assertEquals(specificDate, result2.dueDate)
+    }
+
+    @Test
+    fun `test parse with issue tag`() {
+        val line = "// TODO(issue:PROJ-123): Fix bug"
+        val result = parser.parseLine(line, "test.kt", 1)
+
+        assertNotNull(result)
+        assertEquals("PROJ-123", result.issueId)
+    }
+
+    @Test
+    fun `test parse with issue regex`() {
+        // Mock settings would be ideal here, but since we rely on the service instance which might not be mocked easily in unit tests without a refined architecture,
+        // we might depend on default settings or we interpret the default behavior.
+        // The default pattern is [A-Z]+-\d+
+        
+        // For this test, we instantiate a parser with a known pattern
+        val parserWithRegex = TodoParser("[A-Z]+-\\d+")
+        
+        val line = "// TODO: Fix bug related to PROJ-456"
+        val result = parserWithRegex.parseLine(line, "test.kt", 1)
+
+        assertNotNull(result)
+        assertEquals("PROJ-456", result.issueId) 
+    }
+    @Test
+    fun `test parse with empty regex`() {
+        val parserEmpty = TodoParser("")
+        val line = "// TODO: Fix bug PROJ-123"
+        val result = parserEmpty.parseLine(line, "test.kt", 1)
+
+        assertNotNull(result)
+        assertNull(result.issueId)
+    }
 }
