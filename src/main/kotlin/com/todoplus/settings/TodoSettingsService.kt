@@ -64,11 +64,30 @@ class TodoSettingsService : PersistentStateComponent<TodoSettingsService.State> 
         )
         
         var enableAudioFeedback: Boolean = true
-        var issueUrlTemplate: String = "" // e.g., https://github.com/user/repo/issues/{id}
-        var issuePattern: String = "[A-Z]+-\\d+" // Default: Jira-style (PROJ-123)
-        var ignoredDirectories: MutableList<String> = mutableListOf("build", "node_modules", ".idea", ".git", "out", "dist", "bin", "obj", "target", ".gradle", "vendor")
+        var issueUrlTemplate: String = "https://github.com/my-org/my-repo/issues/{id}" // e.g. https://github.com/my-org/my-repo/issues/{id} or https://mycompany.atlassian.net/browse/{id}
+        var issuePattern: String = "[A-Z]+-\\d+|#\\d+" // Default: Jira-style (PROJ-123) or GitHub-style (#123)
+        var ignoredDirectories: MutableList<String> = mutableListOf(
+            "build", "node_modules", ".idea", ".git", "out", "dist", "bin", "obj",
+            "target", ".gradle", "vendor", ".next", ".nuxt", "coverage", ".venv", "venv", "__pycache__", ".cargo"
+        )
+        var maxFileSizeMb: Int = 5
         var completionBehavior: String = BEHAVIOR_MARK_DONE
         var htmlExport: HtmlExportSettings = HtmlExportSettings()
+
+        // GitHub REST Integration
+        var githubToken: String = ""
+        var githubRepoOwner: String = "my-org"
+        var githubRepoName: String = "my-repo"
+
+        // Jira REST Integration
+        var jiraBaseUrl: String = "https://mycompany.atlassian.net"
+        var jiraEmail: String = "user@company.com"
+        var jiraApiToken: String = ""
+        var jiraProjectKey: String = "PROJ"
+
+        // Webhook Integration
+        var slackWebhookUrl: String = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK_URL"
+        var discordWebhookUrl: String = "https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK_URL"
     }
 
     private var myState = State()

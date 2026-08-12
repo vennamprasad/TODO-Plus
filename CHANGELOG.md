@@ -4,6 +4,48 @@ All notable changes to **TODO++** will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] – 2026-08-13
+
+### 🚀 Issue Tracker REST Integration & Webhooks
+- **GitHub Issues REST Export**: Export any TODO task directly as a GitHub issue (`POST /repos/{owner}/{repo}/issues`) via right-click context menu or toolbar action.
+- **Jira Cloud REST Export**: Export any TODO task directly to Jira Cloud (`POST /rest/api/3/issue`) with formatted markdown descriptions and project field mapping.
+- **Slack & Discord Overdue Webhooks**: 1-click dispatch of formatted Overdue TODO alert notifications directly to Slack (Block Kit) or Discord (Embed) webhook endpoints.
+- **Integrations & Webhooks Settings**: New credentials and endpoint settings section in **Settings > Tools > TODO++** for GitHub Token, Jira credentials, and Webhook URLs.
+
+### ⚡ Performance & Scalability (5,000+ Items)
+- **Smart Group-Level Tree Expansion**: Replaced full recursive tree expansion with top-level group node expansion when datasets exceed 200 items, keeping UI rendering instantaneous.
+- **200ms Live Filter Debouncing**: Integrated `Alarm` debouncing on Search/Assignee/Category fields to buffer live typing input.
+
+---
+
+## [2.2.0] – 2026-08-12
+
+### ⚡ Performance & Scalability Enhancements
+- **Native IDE Exclusions (`ProjectFileIndex`)**: Scanning queries IntelliJ's `ProjectFileIndex.isExcluded(file)` to automatically skip files and directories marked as excluded by `.gitignore`, build tools, or project settings
+- **Real-Time Scan Progress**: Progress manager now displays percentage fractions and granular file counters (`Scanning file 142 of 1,250: Main.kt`) in the background tasks panel
+- **Configurable Max File Size Cap**: Users can now configure maximum file size limits (default 5 MB, adjustable between 1–100 MB) in **Settings > Tools > TODO++**
+- **Expanded Default Ignored Directories**: Added `.next`, `.nuxt`, `coverage`, `.venv`, `venv`, `__pycache__`, `.cargo` to default directory exclusion rules
+- **Cross-Platform Path Normalization**: Path separator matching automatically normalizes backslashes (`\`) on Windows to ensure directory exclusion rules work seamlessly across all OSs
+
+### 📚 Methodology & Documentation
+- **AIDLC (AI-Driven Development Life Cycle)**: Adopted structured AIDLC workflow (Plan -> Implement -> Verify -> Sandbox Test -> Document) with documented guidelines in `docs/AIDLC_GUIDE.md`
+
+---
+
+## [2.1.0] – 2026-07-21
+
+### 🐛 Bug Fixes
+- **Block comment TODO detection**: TODOs inside `/* TODO: ... */` (standalone and mid-line) were silently ignored. Fixed by updating the regex prefix from `/\*` → `/\*+` so it matches `/*`, `/**`, and `/***` delimiters, and adding `*/` as a description boundary in the lookahead
+- **Javadoc / KDoc detection**: `/** TODO: ... */` style comments now correctly detected
+- **Description clean-up**: Trailing `*/` is no longer included in the captured TODO description
+
+### ✨ New Features
+- **Customisable HTML Export** (`HtmlExportConfig`): Override any of 5 sections of the exported HTML dashboard — page title, custom CSS (including criticality-level colours), stats counter block (with `{{TOTAL/CRITICAL/HIGH/MEDIUM/LOW}}` tokens), the list/table section (`{{ROWS}}` token), and a custom footer. Config is persisted in IDE settings XML
+
+### 🔧 Improvements
+- **Priority group urgency sorting**: When grouped by Priority in the tree, groups now sort `CRITICAL → HIGH → MEDIUM → LOW → None` instead of alphabetically
+- **Large file safety guard**: Files over 5 MB are automatically skipped during scanning to prevent `OutOfMemoryError` on generated assets and logs
+
 ---
 
 ## [2.1.0] – 2026-07-21

@@ -34,10 +34,28 @@ class TodoSettingsConfigurable : Configurable {
     private val issueUrlField = JTextField()
     private val issuePatternField = JTextField()
     
-    // Completion Behavior
+    // Task Completion Behavior Settings
     private val markDoneRadioButton = JRadioButton("Mark as DONE in code (e.g. // DONE(...))")
     private val deleteCommentRadioButton = JRadioButton("Remove comment line completely from code")
     private val completionGroup = ButtonGroup()
+
+    // Scanning Limits
+    private val maxFileSizeSpinner = JSpinner(SpinnerNumberModel(5, 1, 100, 1))
+
+    // GitHub REST Integration
+    private val githubTokenField = JPasswordField()
+    private val githubOwnerField = JTextField()
+    private val githubRepoField = JTextField()
+
+    // Jira REST Integration
+    private val jiraUrlField = JTextField()
+    private val jiraEmailField = JTextField()
+    private val jiraTokenField = JPasswordField()
+    private val jiraProjectField = JTextField()
+
+    // Webhooks
+    private val slackWebhookField = JTextField()
+    private val discordWebhookField = JTextField()
 
     private var isModified = false
 
@@ -105,6 +123,50 @@ class TodoSettingsConfigurable : Configurable {
             add(hintLabel, BorderLayout.SOUTH)
         }
         mainPanel.add(issuePanel)
+
+        // --- GitHub REST Export Settings ---
+        val githubPanel = JPanel(GridLayout(3, 2, 5, 5)).apply {
+            border = BorderFactory.createTitledBorder("GitHub REST API Integration")
+            add(JLabel("Personal Access Token:"))
+            add(githubTokenField)
+            add(JLabel("Repository Owner / Org:"))
+            add(githubOwnerField)
+            add(JLabel("Repository Name:"))
+            add(githubRepoField)
+        }
+        mainPanel.add(githubPanel)
+
+        // --- Jira REST Export Settings ---
+        val jiraPanel = JPanel(GridLayout(4, 2, 5, 5)).apply {
+            border = BorderFactory.createTitledBorder("Jira Cloud REST API Integration")
+            add(JLabel("Jira Base URL:"))
+            add(jiraUrlField)
+            add(JLabel("Account Email:"))
+            add(jiraEmailField)
+            add(JLabel("API Token:"))
+            add(jiraTokenField)
+            add(JLabel("Project Key (e.g. PROJ):"))
+            add(jiraProjectField)
+        }
+        mainPanel.add(jiraPanel)
+
+        // --- Webhook Alerts Settings ---
+        val webhookPanel = JPanel(GridLayout(2, 2, 5, 5)).apply {
+            border = BorderFactory.createTitledBorder("Overdue Webhook Alert Endpoints")
+            add(JLabel("Slack Webhook URL:"))
+            add(slackWebhookField)
+            add(JLabel("Discord Webhook URL:"))
+            add(discordWebhookField)
+        }
+        mainPanel.add(webhookPanel)
+
+        // --- Scanning Limits Settings ---
+        val scanPanel = JPanel(GridLayout(1, 2, 5, 5)).apply {
+            border = BorderFactory.createTitledBorder("Scanning Performance Limits")
+            add(JLabel("Max File Size to Scan (MB):"))
+            add(maxFileSizeSpinner)
+        }
+        mainPanel.add(scanPanel)
         
         // --- Task Completion Behavior Settings ---
         completionGroup.add(markDoneRadioButton)
@@ -118,14 +180,7 @@ class TodoSettingsConfigurable : Configurable {
         mainPanel.add(completionPanel)
 
         // --- Load Settings ---
-        val settings = TodoSettingsService.getInstance()
-        issueUrlField.text = settings.getState().issueUrlTemplate
-        issuePatternField.text = settings.getState().issuePattern
-        if (settings.getState().completionBehavior == TodoSettingsService.BEHAVIOR_DELETE_COMMENT) {
-            deleteCommentRadioButton.isSelected = true
-        } else {
-            markDoneRadioButton.isSelected = true
-        }
+        reset()
 
         settingsPanel?.add(mainPanel, BorderLayout.CENTER)
         
@@ -246,6 +301,24 @@ class TodoSettingsConfigurable : Configurable {
         // Check issue settings
         if (issueUrlField.text != settings.getState().issueUrlTemplate) return true
         if (issuePatternField.text != settings.getState().issuePattern) return true
+
+        // Check scanning limits
+        if ((maxFileSizeSpinner.value as Int) != settings.getState().maxFileSizeMb) return true
+
+        // Check GitHub settings
+        if (String(githubTokenField.password) != settings.getState().githubToken) return true
+        if (githubOwnerField.text != settings.getState().githubRepoOwner) return true
+        if (githubRepoField.text != settings.getState().githubRepoName) return true
+
+        // Check Jira settings
+        if (jiraUrlField.text != settings.getState().jiraBaseUrl) return true
+        if (jiraEmailField.text != settings.getState().jiraEmail) return true
+        if (String(jiraTokenField.password) != settings.getState().jiraApiToken) return true
+        if (jiraProjectField.text != settings.getState().jiraProjectKey) return true
+
+        // Check Webhooks
+        if (slackWebhookField.text != settings.getState().slackWebhookUrl) return true
+        if (discordWebhookField.text != settings.getState().discordWebhookUrl) return true
         
         // Check completion behavior
         val selectedBehavior = if (deleteCommentRadioButton.isSelected) TodoSettingsService.BEHAVIOR_DELETE_COMMENT else TodoSettingsService.BEHAVIOR_MARK_DONE
@@ -265,6 +338,20 @@ class TodoSettingsConfigurable : Configurable {
         
         settings.getState().issueUrlTemplate = issueUrlField.text.trim()
         settings.getState().issuePattern = issuePatternField.text.trim()
+        settings.getState().maxFileSizeMb = maxFileSizeSpinner.value as Int
+
+        settings.getState().githubToken = String(githubTokenField.password).trim()
+        settings.getState().githubRepoOwner = githubOwnerField.text.trim()
+        settings.getState().githubRepoName = githubRepoField.text.trim()
+
+        settings.getState().jiraBaseUrl = jiraUrlField.text.trim()
+        settings.getState().jiraEmail = jiraEmailField.text.trim()
+        settings.getState().jiraApiToken = String(jiraTokenField.password).trim()
+        settings.getState().jiraProjectKey = jiraProjectField.text.trim()
+
+        settings.getState().slackWebhookUrl = slackWebhookField.text.trim()
+        settings.getState().discordWebhookUrl = discordWebhookField.text.trim()
+
         settings.getState().completionBehavior = if (deleteCommentRadioButton.isSelected) TodoSettingsService.BEHAVIOR_DELETE_COMMENT else TodoSettingsService.BEHAVIOR_MARK_DONE
         
         isModified = false
@@ -283,6 +370,20 @@ class TodoSettingsConfigurable : Configurable {
         
         issueUrlField.text = settings.getState().issueUrlTemplate
         issuePatternField.text = settings.getState().issuePattern
+        maxFileSizeSpinner.value = settings.getState().maxFileSizeMb
+
+        githubTokenField.text = settings.getState().githubToken
+        githubOwnerField.text = settings.getState().githubRepoOwner
+        githubRepoField.text = settings.getState().githubRepoName
+
+        jiraUrlField.text = settings.getState().jiraBaseUrl
+        jiraEmailField.text = settings.getState().jiraEmail
+        jiraTokenField.text = settings.getState().jiraApiToken
+        jiraProjectField.text = settings.getState().jiraProjectKey
+
+        slackWebhookField.text = settings.getState().slackWebhookUrl
+        discordWebhookField.text = settings.getState().discordWebhookUrl
+
         if (settings.getState().completionBehavior == TodoSettingsService.BEHAVIOR_DELETE_COMMENT) {
             deleteCommentRadioButton.isSelected = true
         } else {

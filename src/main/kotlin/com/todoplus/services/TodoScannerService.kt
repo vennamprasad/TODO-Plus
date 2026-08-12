@@ -14,6 +14,9 @@ import com.todoplus.parser.TodoParser
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Computable
 
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.roots.ProjectFileIndex
+
 /**
  * Service for scanning project files and extracting TODO items
  */
@@ -32,7 +35,7 @@ class TodoScannerService(private val project: Project) {
     /**
      * Scan all files in the project and extract TODO items
      */
-    fun scanProject(): List<TodoItem> {
+    fun scanProject(indicator: ProgressIndicator? = null): List<TodoItem> {
         LOG.info("Starting project scan for TODOs")
         val todos = mutableListOf<TodoItem>()
         
@@ -40,10 +43,21 @@ class TodoScannerService(private val project: Project) {
         val files = findAllFiles()
         LOG.info("Found ${files.size} files to scan")
         
+        val totalFiles = files.size
+        if (indicator != null && totalFiles > 0) {
+            indicator.isIndeterminate = false
+        }
+        
         // Parse each file
-        files.forEach { file ->
+        files.forEachIndexed { index, file ->
             // Check for cancellation
             com.intellij.openapi.progress.ProgressManager.checkCanceled()
+            
+            if (indicator != null && totalFiles > 0) {
+                indicator.fraction = (index + 1).toDouble() / totalFiles
+                indicator.text2 = "Scanning file ${index + 1} of $totalFiles: ${file.name}"
+            }
+            
             todos.addAll(scanFile(file))
         }
         
@@ -56,7 +70,9 @@ class TodoScannerService(private val project: Project) {
      * Uses PSI to read from editor buffer (unsaved changes) instead of disk
      */
     fun scanFile(file: VirtualFile): List<TodoItem> {
-        if (!file.isValid || file.isDirectory || file.length > 5 * 1024 * 1024) {
+        val maxMb = com.todoplus.settings.TodoSettingsService.getInstance().getState().maxFileSizeMb
+        val maxSizeBytes = maxMb * 1024L * 1024L
+        if (!file.isValid || file.isDirectory || file.length > maxSizeBytes) {
             return emptyList()
         }
 
@@ -99,6 +115,7 @@ class TodoScannerService(private val project: Project) {
         return ApplicationManager.getApplication().runReadAction(Computable {
             val files = mutableListOf<VirtualFile>()
             val scope = GlobalSearchScope.projectScope(project)
+            val fileIndex = ProjectFileIndex.getInstance(project)
             
             // Get ignored directories
             val ignoredDirs = com.todoplus.settings.TodoSettingsService.getInstance().getIgnoredDirectories()
@@ -108,10 +125,15 @@ class TodoScannerService(private val project: Project) {
             
             fileTypes.forEach { fileType ->
                 val virtualFiles = FileTypeIndex.getFiles(fileType, scope)
-                // Filter out files in ignored directories
+                // Filter out files in ignored directories or excluded by IDE index
                 val filteredFiles = virtualFiles.filter { file ->
-                    val path = file.path
-                    // Check if path contains /[ignoredDir]/
+                    // 1. Skip if IDE index marks file/directory as excluded
+                    if (fileIndex.isExcluded(file)) return@filter false
+                    
+                    // 2. Normalize path separators for cross-platform compatibility
+                    val path = file.path.replace('\\', '/')
+                    
+                    // 3. Check against user-configured ignored directory rules
                     !ignoredDirs.any { ignoredDir ->
                         path.contains("/$ignoredDir/") || path.endsWith("/$ignoredDir")
                     }

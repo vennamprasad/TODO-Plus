@@ -12,10 +12,10 @@ class TodoSettingsTest {
         val state = service.state
 
         // Verify default issue pattern
-        assertEquals("[A-Z]+-\\d+", state.issuePattern)
+        assertEquals("[A-Z]+-\\d+|#\\d+", state.issuePattern)
         
-        // Verify default URL template is empty
-        assertEquals("", state.issueUrlTemplate)
+        // Verify default URL template sample
+        assertEquals("https://github.com/my-org/my-repo/issues/{id}", state.issueUrlTemplate)
         
         // Verify default priorities exist
         assertEquals(4, state.priorities.size)
@@ -24,8 +24,11 @@ class TodoSettingsTest {
         assertTrue(state.priorities.any { it.name == "MEDIUM" })
         assertTrue(state.priorities.any { it.name == "LOW" })
         
+        // Verify default max file size limit
+        assertEquals(5, state.maxFileSizeMb)
+
         // Verify default ignored directories
-        assertEquals(11, state.ignoredDirectories.size)
+        assertEquals(18, state.ignoredDirectories.size)
         assertTrue(state.ignoredDirectories.contains("node_modules"))
         assertTrue(state.ignoredDirectories.contains("build"))
         assertTrue(state.ignoredDirectories.contains(".idea"))
@@ -37,6 +40,9 @@ class TodoSettingsTest {
         assertTrue(state.ignoredDirectories.contains("target"))
         assertTrue(state.ignoredDirectories.contains(".gradle"))
         assertTrue(state.ignoredDirectories.contains("vendor"))
+        assertTrue(state.ignoredDirectories.contains(".next"))
+        assertTrue(state.ignoredDirectories.contains(".venv"))
+        assertTrue(state.ignoredDirectories.contains("coverage"))
     }
 
     @Test

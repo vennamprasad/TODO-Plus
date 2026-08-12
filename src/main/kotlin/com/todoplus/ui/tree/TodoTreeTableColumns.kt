@@ -141,6 +141,18 @@ object TodoTreeTableColumns {
     }
 
     object DateRenderer : ColoredTableCellRenderer() {
+        private var cachedToday: java.time.LocalDate? = null
+        private var cachedTodayTimestamp: Long = 0L
+
+        private fun getToday(): java.time.LocalDate {
+            val now = System.currentTimeMillis()
+            if (cachedToday == null || (now - cachedTodayTimestamp) > 60_000L) {
+                cachedToday = java.time.LocalDate.now()
+                cachedTodayTimestamp = now
+            }
+            return cachedToday!!
+        }
+
         override fun customizeCellRenderer(table: JTable, value: Any?, selected: Boolean, hasFocus: Boolean, row: Int, column: Int) {
             val str = value?.toString() ?: "-"
             if (selected) {
@@ -153,7 +165,7 @@ object TodoTreeTableColumns {
             }
             try {
                 val date = java.time.LocalDate.parse(str)
-                val today = java.time.LocalDate.now()
+                val today = getToday()
                 when {
                     date.isBefore(today) -> append(str, SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, Color(220, 50, 50)))
                     date.isBefore(today.plusDays(7)) -> append(str, SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, Color(220, 160, 30)))

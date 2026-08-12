@@ -86,11 +86,30 @@ Define your own priority levels and colors!
 3.  Choose a color (e.g., Purple).
 4.  Reorder items to define sort order.
 
-### Issue Tracker Setup
-1.  **Issue URL Template**: Define where links go.
-    *   Example: `https://github.com/myuser/myrepo/issues/{id}`
-2.  **Issue ID Pattern**: Regex to find IDs.
-    *   Default: `[A-Z]+-\d+` (Matches `PROJ-123`).
+### Issue Tracker & REST Export Setup
+1.  **Issue URL Template**: Define where link tags `{id}` go.
+    *   GitHub Example: `https://github.com/my-org/my-repo/issues/{id}`
+    *   Jira Example: `https://mycompany.atlassian.net/browse/{id}`
+2.  **Issue ID Pattern**: Regex pattern matching IDs in code comments (e.g. `[A-Z]+-\d+|#\d+`).
+3.  **GitHub REST Integration**:
+    *   **Personal Access Token**: GitHub PAT token with `repo` scope.
+    *   **Repository Owner**: e.g., `my-org`
+    *   **Repository Name**: e.g., `my-repo`
+4.  **Jira Cloud REST Integration**:
+    *   **Jira Base URL**: `https://mycompany.atlassian.net`
+    *   **Account Email**: `user@company.com`
+    *   **API Token**: Atlassian API token.
+    *   **Project Key**: e.g., `PROJ`
+5.  **Slack / Discord Webhooks**:
+    *   **Slack Webhook URL**: `https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK_URL`
+    *   **Discord Webhook URL**: `https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK_URL`
+
+### ⚡ Large Project Scanning & Performance Limits
+1.  **Ignored Directories**: Add custom folder names (e.g. `dist`, `coverage`, `.venv`) to prevent scanning unwanted directories.
+2.  **Native Exclusions**: Folders excluded in your project settings or `.gitignore` are automatically skipped via IntelliJ's `ProjectFileIndex`.
+3.  **Max File Size Limit**: Set the maximum file size (default `5 MB`) to prevent scanning massive generated text or log files.
+4.  **High-Volume Tree Rendering**: Top-level group expansion and 200ms `Alarm` filter debouncing guarantee zero EDT freezes on 5,000+ TODO items.
+5.  **Cross-Platform Normalization**: Handles Windows (`\`) and Unix (`/`) path formats seamlessly.
 
 ---
 

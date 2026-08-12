@@ -45,13 +45,18 @@ import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 
 import com.intellij.openapi.Disposable
+import com.intellij.util.Alarm
 
 /**
  * Content panel for the TODO++ tool window
  */
 class TodoToolWindowContent(private val project: Project) : Disposable {
 
-    override fun dispose() {}
+    private val filterAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
+
+    override fun dispose() {
+        filterAlarm.cancelAllRequests()
+    }
 
         private val treeTable: TreeTableView
     private val groupByDropdown = JComboBox(TodoGroupBy.entries.toTypedArray())
@@ -218,6 +223,19 @@ class TodoToolWindowContent(private val project: Project) : Disposable {
                 override fun actionPerformed(e: AnActionEvent) { copyForStandup() }
             })
             addSeparator()
+            add(object : AnAction("Export Task to GitHub Issue", "Create a new issue on GitHub for selected TODO", AllIcons.Vcs.Vendors.Github) {
+                override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+                override fun actionPerformed(e: AnActionEvent) { exportSelectedToGitHubIssue() }
+            })
+            add(object : AnAction("Export Task to Jira Issue", "Create a new issue on Jira for selected TODO", AllIcons.Actions.Commit) {
+                override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+                override fun actionPerformed(e: AnActionEvent) { exportSelectedToJiraIssue() }
+            })
+            add(object : AnAction("Send Overdue Webhook Alerts", "Send Slack / Discord alerts for overdue tasks", AllIcons.General.Warning) {
+                override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+                override fun actionPerformed(e: AnActionEvent) { sendOverdueWebhookAlerts() }
+            })
+            addSeparator()
             add(object : AnAction("Clear Filters", "Clear all search filters", AllIcons.Actions.GC) {
                 override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
                 override fun actionPerformed(e: AnActionEvent) { clearFilters() }
@@ -332,12 +350,25 @@ class TodoToolWindowContent(private val project: Project) : Disposable {
         searchField.toolTipText = "Search description..."
         panel.add(searchField)
         
-        // Apply filter on enter key
+        // Apply filter with 200ms debounce to keep UI fluid on large datasets
+        val debouncedApply = {
+            filterAlarm.cancelAllRequests()
+            filterAlarm.addRequest({ applyFilters() }, 200)
+        }
+
+        val docListener = object : javax.swing.event.DocumentListener {
+            override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = debouncedApply()
+            override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = debouncedApply()
+            override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = debouncedApply()
+        }
+
+        assigneeFilter.document.addDocumentListener(docListener)
+        categoryFilter.document.addDocumentListener(docListener)
+        searchField.textEditor.document.addDocumentListener(docListener)
+        
         val applyAction = java.awt.event.ActionListener { applyFilters() }
         assigneeFilter.addActionListener(applyAction)
         categoryFilter.addActionListener(applyAction)
-        
-        // Add listener to search field's text editor
         searchField.textEditor.addActionListener(applyAction)
 
         val filterButton = JButton("Apply").apply {
@@ -403,8 +434,8 @@ class TodoToolWindowContent(private val project: Project) : Disposable {
                 
                 try {
                     val scanner = project.service<TodoScannerService>()
-                    // Run scanning (service handles Read Actions internally)
-                    val foundTodos = scanner.scanProject()
+                    // Run scanning (service handles Read Actions internally and updates progress indicator)
+                    val foundTodos = scanner.scanProject(indicator)
                     
                     // Update UI on EDT
                     ApplicationManager.getApplication().invokeLater {
@@ -430,56 +461,86 @@ class TodoToolWindowContent(private val project: Project) : Disposable {
         val categoryText = categoryFilter.text.trim().lowercase()
         val searchText = searchField.text.trim().lowercase()
         
-        allTodos.forEach { todo ->
+        // Parse structured tags in search text (e.g. risk:high)
+        val tagFilters = mutableMapOf<String, String>()
+        val searchTokens = searchText.split(" ").filter { it.isNotBlank() }
+        val remainingSearchTokens = mutableListOf<String>()
+
+        searchTokens.forEach { token ->
+            if (token.contains(":") && !token.startsWith(":")) {
+                val parts = token.split(":", limit = 2)
+                if (parts.size == 2 && parts[0].isNotBlank()) {
+                    tagFilters[parts[0].lowercase()] = parts[1].lowercase()
+                } else {
+                    remainingSearchTokens.add(token)
+                }
+            } else {
+                remainingSearchTokens.add(token)
+            }
+        }
+        val cleanSearchText = remainingSearchTokens.joinToString(" ")
+
+        for (todo in allTodos) {
+            if (!showCompleted && todo.isCompleted) continue
+            
             var matches = true
             
-            // Show / hide completed tasks
-            if (!showCompleted && todo.isCompleted) {
-                matches = false
-            }
-            
-            // Priority filter
+            // Priority Filter
             if (priorityFilterValue != "All Priorities") {
-                matches = when (priorityFilterValue) {
-                    "None" -> todo.priority == null
-                    else -> todo.priority?.name == priorityFilterValue
+                if (todo.priority?.name?.uppercase() != priorityFilterValue.uppercase()) {
+                    matches = false
                 }
             }
             
-            // Assignee filter
+            // Assignee Filter
             if (matches && assigneeText.isNotEmpty()) {
-                val hasAssigneeMatch = todo.assignee?.lowercase()?.contains(assigneeText) == true
-                val hasAuthorMatch = todo.vcsAuthor?.lowercase()?.contains(assigneeText) == true
-                matches = hasAssigneeMatch || hasAuthorMatch
+                val hasAssignee = todo.assignee?.lowercase()?.contains(assigneeText) == true
+                val hasAuthor = todo.vcsAuthor?.lowercase()?.contains(assigneeText) == true
+                if (!hasAssignee && !hasAuthor) {
+                    matches = false
+                }
             }
             
-            // Category filter
+            // Category Filter
             if (matches && categoryText.isNotEmpty()) {
-                matches = todo.category?.lowercase()?.contains(categoryText) == true
+                if (todo.category?.lowercase()?.contains(categoryText) != true) {
+                    matches = false
+                }
             }
             
-            // Search filter
-            if (matches && searchText.isNotEmpty()) {
-                if (searchText.contains(":")) {
-                   // key:value search
-                   val parts = searchText.split(":")
-                   if (parts.size >= 2) {
-                       val key = parts[0].trim()
-                       val value = parts[1].trim()
-                       
-                        matches = when(key) {
-                            "priority" -> todo.priority?.name?.lowercase() == value
-                            "assignee", "assigned", "author" -> {
-                                val hasAssignee = todo.assignee?.lowercase()?.contains(value) == true
-                                val hasAuthor = todo.vcsAuthor?.lowercase()?.contains(value) == true
-                                hasAssignee || hasAuthor
-                            }
-                            "category" -> todo.category?.lowercase()?.contains(value) == true
-                            else -> todo.tags[key]?.lowercase()?.contains(value) == true
+            // Structured Tag Filters
+            if (matches && tagFilters.isNotEmpty()) {
+                for ((key, value) in tagFilters) {
+                    val tagMatch = when(key) {
+                        "priority" -> todo.priority?.name?.lowercase() == value
+                        "assignee", "assigned", "author" -> {
+                            val hasAssignee = todo.assignee?.lowercase()?.contains(value) == true
+                            val hasAuthor = todo.vcsAuthor?.lowercase()?.contains(value) == true
+                            hasAssignee || hasAuthor
                         }
-                   }
-                } else {
-                    matches = todo.description.lowercase().contains(searchText)
+                        "category" -> todo.category?.lowercase()?.contains(value) == true
+                        else -> todo.tags[key]?.lowercase()?.contains(value) == true
+                    }
+                    if (!tagMatch) {
+                        matches = false
+                        break
+                    }
+                }
+            }
+            
+            // General Text Search
+            if (matches && cleanSearchText.isNotEmpty()) {
+                val inDesc = todo.description.lowercase().contains(cleanSearchText)
+                val inAssignee = todo.assignee?.lowercase()?.contains(cleanSearchText) == true
+                val inAuthor = todo.vcsAuthor?.lowercase()?.contains(cleanSearchText) == true
+                val inCategory = todo.category?.lowercase()?.contains(cleanSearchText) == true
+                val inFileName = todo.getFileName().lowercase().contains(cleanSearchText)
+                val inFilePath = todo.filePath.lowercase().contains(cleanSearchText)
+                val inIssue = todo.issueId?.lowercase()?.contains(cleanSearchText) == true
+                val inTags = todo.tags.entries.any { "${it.key}:${it.value}".lowercase().contains(cleanSearchText) }
+                
+                if (!inDesc && !inAssignee && !inAuthor && !inCategory && !inFileName && !inFilePath && !inIssue && !inTags) {
+                    matches = false
                 }
             }
             
@@ -488,10 +549,23 @@ class TodoToolWindowContent(private val project: Project) : Disposable {
             }
         }
         
-                
         val newModel = TodoTreeModelBuilder.buildModel(filteredTodos, groupByDropdown.selectedItem as TodoGroupBy, TodoTreeTableColumns.createColumns())
         treeTable.setModel(newModel)
-        TreeUtil.expandAll(treeTable.tree)
+
+        // Smart tree expansion: for large datasets (> 200 items), expand top-level group nodes only to keep rendering UI fast
+        if (filteredTodos.size > 200) {
+            val rootNode = treeTable.tree.model.root as? DefaultMutableTreeNode
+            if (rootNode != null) {
+                val childCount = rootNode.childCount
+                for (i in 0 until childCount) {
+                    val child = rootNode.getChildAt(i)
+                    val path = javax.swing.tree.TreePath(arrayOf(rootNode, child))
+                    treeTable.tree.expandPath(path)
+                }
+            }
+        } else {
+            TreeUtil.expandAll(treeTable.tree)
+        }
         
         // Adjust widths after setting model
         val cols = treeTable.columnModel
@@ -813,5 +887,132 @@ class TodoToolWindowContent(private val project: Project) : Disposable {
         if (file.isDirectory || !file.isValid) return false
         val ft = file.fileType
         return !ft.isBinary && ft.name.uppercase() != "UNKNOWN"
+    }
+
+    private fun getSelectedTodo(): TodoItem? {
+        val selectedRow = treeTable.selectedRow
+        if (selectedRow < 0) return null
+        val node = treeTable.getValueAt(selectedRow, 0)
+        if (node is DefaultMutableTreeNode && node.userObject is TodoItem) {
+            return node.userObject as TodoItem
+        }
+        return null
+    }
+
+    private fun exportSelectedToGitHubIssue() {
+        val todo = getSelectedTodo()
+        if (todo == null) {
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("TODO++ Notifications")
+                .createNotification("Please select a TODO item to export to GitHub.", NotificationType.WARNING)
+                .notify(project)
+            return
+        }
+
+        val settings = com.todoplus.settings.TodoSettingsService.getInstance().getState()
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Exporting to GitHub Issue", true) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                val result = com.todoplus.services.integration.IssueExporterService.createGitHubIssue(
+                    todo, settings.githubToken, settings.githubRepoOwner, settings.githubRepoName
+                )
+                ApplicationManager.getApplication().invokeLater {
+                    result.onSuccess { url ->
+                        NotificationGroupManager.getInstance()
+                            .getNotificationGroup("TODO++ Notifications")
+                            .createNotification("Exported to GitHub Issue: <a href='$url'>$url</a>", NotificationType.INFORMATION)
+                            .setListener(com.intellij.notification.NotificationListener.URL_OPENING_LISTENER)
+                            .notify(project)
+                    }.onFailure { ex ->
+                        NotificationGroupManager.getInstance()
+                            .getNotificationGroup("TODO++ Notifications")
+                            .createNotification("GitHub Issue Export Failed: ${ex.message}", NotificationType.ERROR)
+                            .notify(project)
+                    }
+                }
+            }
+        })
+    }
+
+    private fun exportSelectedToJiraIssue() {
+        val todo = getSelectedTodo()
+        if (todo == null) {
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("TODO++ Notifications")
+                .createNotification("Please select a TODO item to export to Jira.", NotificationType.WARNING)
+                .notify(project)
+            return
+        }
+
+        val settings = com.todoplus.settings.TodoSettingsService.getInstance().getState()
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Exporting to Jira Issue", true) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                val result = com.todoplus.services.integration.IssueExporterService.createJiraIssue(
+                    todo, settings.jiraBaseUrl, settings.jiraEmail, settings.jiraApiToken, settings.jiraProjectKey
+                )
+                ApplicationManager.getApplication().invokeLater {
+                    result.onSuccess { url ->
+                        NotificationGroupManager.getInstance()
+                            .getNotificationGroup("TODO++ Notifications")
+                            .createNotification("Exported to Jira Issue: <a href='$url'>$url</a>", NotificationType.INFORMATION)
+                            .setListener(com.intellij.notification.NotificationListener.URL_OPENING_LISTENER)
+                            .notify(project)
+                    }.onFailure { ex ->
+                        NotificationGroupManager.getInstance()
+                            .getNotificationGroup("TODO++ Notifications")
+                            .createNotification("Jira Issue Export Failed: ${ex.message}", NotificationType.ERROR)
+                            .notify(project)
+                    }
+                }
+            }
+        })
+    }
+
+    private fun sendOverdueWebhookAlerts() {
+        val today = java.time.LocalDate.now()
+        val overdueTodos = allTodos.filter { !it.isCompleted && it.dueDate != null && it.dueDate.isBefore(today) }
+
+        if (overdueTodos.isEmpty()) {
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("TODO++ Notifications")
+                .createNotification("No overdue TODO items found to notify.", NotificationType.INFORMATION)
+                .notify(project)
+            return
+        }
+
+        val settings = com.todoplus.settings.TodoSettingsService.getInstance().getState()
+        if (settings.slackWebhookUrl.isBlank() && settings.discordWebhookUrl.isBlank()) {
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("TODO++ Notifications")
+                .createNotification("Please configure a Slack or Discord Webhook URL in Settings.", NotificationType.WARNING)
+                .notify(project)
+            return
+        }
+
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Sending Overdue Webhook Alerts", true) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                var slackSuccess = false
+                var discordSuccess = false
+
+                if (settings.slackWebhookUrl.isNotBlank()) {
+                    com.todoplus.services.integration.WebhookNotificationService.sendOverdueSlackNotification(settings.slackWebhookUrl, overdueTodos)
+                        .onSuccess { slackSuccess = true }
+                }
+                if (settings.discordWebhookUrl.isNotBlank()) {
+                    com.todoplus.services.integration.WebhookNotificationService.sendOverdueDiscordNotification(settings.discordWebhookUrl, overdueTodos)
+                        .onSuccess { discordSuccess = true }
+                }
+
+                ApplicationManager.getApplication().invokeLater {
+                    val msg = "Sent overdue notifications for ${overdueTodos.size} tasks (Slack: ${if (slackSuccess) "Sent" else "N/A"}, Discord: ${if (discordSuccess) "Sent" else "N/A"})."
+                    NotificationGroupManager.getInstance()
+                        .getNotificationGroup("TODO++ Notifications")
+                        .createNotification(msg, NotificationType.INFORMATION)
+                        .notify(project)
+                }
+            }
+        })
     }
 }
